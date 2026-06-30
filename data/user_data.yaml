@@ -1,0 +1,16 @@
+# 用户管理测试数据
+# 重要：UserSaveReqVO 无 status / roleIds 字段
+#   - 状态修改走 /system/user/update-status（body: id, status）
+#   - 角色绑定走 /system/permission/assign-user-role（body: userId, roleIds）
+user:
+  create:
+    username_prefix: "auto_user"
+    password: "Test123456"      # 4-16 位
+    nickname_prefix: "自动用户"
+    mobile: "13800000000"
+    deptId: 100                 # 系统已有部门 id（芋道根部门）
+    status: 0
+  search_existing:
+    username: "admin"
+  # 创建测试用户时绑定的角色（可选）
+  default_role_id: 1            # 系统已有角色 id

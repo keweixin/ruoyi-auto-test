@@ -1,0 +1,17 @@
+# 字典管理测试数据
+dict:
+  # 新建字典类型用到的字段（对齐 DictTypeSaveReqVO：name / type / status / remark，无 sort）
+  type_create:
+    name_prefix: "auto_dict"
+    type_prefix: "auto_type"
+    status: 0          # 0=开启 1=禁用（CommonStatusEnum）
+    remark: "自动化测试数据"
+  # 新建字典数据用到的字段（对齐 DictDataSaveReqVO：sort / label / value / dictType / status）
+  data_create:
+    label_prefix: "自动选项"
+    value_prefix: "auto_val"
+    sort: 1
+    status: 0
+  # 系统已有稳定数据，用于查询类用例
+  search_existing:
+    type: "sys_user_sex"   # 若依自带的"用户性别"字典类型

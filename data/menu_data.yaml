@@ -1,0 +1,19 @@
+# 菜单管理测试数据
+# 对齐 MenuSaveVO：parentId / name / type / path / icon / sort / status / ...
+# type: 1=目录 2=菜单 3=按钮
+menu:
+  create:
+    name_prefix: "auto_menu"
+    parentId: 0          # 0 = 顶级菜单
+    type: 2              # 菜单
+    path: "auto"
+    sort: 1
+    status: 0
+  button_create:
+    name_prefix: "auto_btn"
+    parentId: 1          # 挂在某个菜单下
+    type: 3              # 按钮
+    sort: 1
+    status: 0
+  search_existing:
+    name: "系统管理"

@@ -1,0 +1,12 @@
+# 部门管理测试数据
+# 对齐 DeptSaveReqVO：name / parentId / sort / leaderUserId / phone / email / status（无 remark）
+dept:
+  create:
+    name_prefix: "auto_dept"
+    parentId: 0          # 0 = 顶级部门（DeptDO.PARENT_ID_ROOT）
+    sort: 1
+    status: 0            # 0=开启 1=禁用
+    phone: "13800000000"
+    email: "autodept@test.com"
+  search_existing:
+    name: "研发部"        # 系统已有部门

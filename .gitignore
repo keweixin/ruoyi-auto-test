@@ -1,0 +1,14 @@
+# 本地敏感配置
+.env
+.env.*
+data/env.yaml
+
+# 临时产物
+reports/
+screenshots/
+traces/
+logs/
+__pycache__/
+*.pyc
+.pytest_cache/
+allure-results/

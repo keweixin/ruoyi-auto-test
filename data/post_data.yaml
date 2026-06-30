@@ -1,0 +1,11 @@
+# 岗位管理测试数据
+# 对齐 PostSaveReqVO：name / code / sort / status / remark
+post:
+  create:
+    name_prefix: "auto_post"
+    code_prefix: "auto_code"
+    sort: 1
+    status: 0          # 0=开启 1=禁用
+    remark: "自动化测试岗位"
+  search_existing:
+    name: "CEO"        # 若依自带岗位

@@ -1,0 +1,15 @@
+# 角色管理测试数据
+# 重要：RoleSaveReqVO 无 menuIds / dataScope 字段
+#   - 菜单分配走 /system/permission/assign-role-menu（body: roleId, menuIds）
+#   - 数据权限走 /system/permission/assign-role-data-scope
+role:
+  create:
+    name_prefix: "auto_role"
+    code_prefix: "auto_role_code"
+    sort: 1
+    status: 0
+    remark: "自动化测试角色"
+  # 给测试角色分配的菜单 id（示例：字典管理相关，以本地为准）
+  assign_menu_ids: [1, 2, 3]
+  search_existing:
+    name: "超级管理员"
