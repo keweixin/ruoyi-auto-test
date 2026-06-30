@@ -1,25 +1,23 @@
-"""测试数据清理工具。
+"""测试数据清理工具（适配 RuoYi v3.9.2 原版表结构）。
 
-用途：作为 UI/联动测试失败后的兜底清理，清理自动化创建的 auto_* 数据。
-原则：
-- 用例内优先接口清理；
-- 本工具只兜底清理 auto 前缀数据，避免误删系统数据；
-- 清理失败只记录日志，不掩盖真实测试失败。
+原版逻辑删除字段差异：
+- sys_user / sys_role / sys_dept / sys_dict_type 部分表用 del_flag（'0'正常 '2'删除）
+- sys_menu / sys_post / sys_dict_data 无 del_flag，是物理删除
+为避免误报，清理失败只记录日志，不掩盖真实测试失败。
 """
 from common import db_utils
 from common.logger import log
 
 
 def cleanup_auto_data():
-    """兜底清理 auto_* 测试数据。"""
     statements = [
-        ("UPDATE system_dict_data SET deleted=1 WHERE label LIKE %s OR value LIKE %s", ("auto%", "auto%")),
-        ("UPDATE system_dict_type SET deleted=1 WHERE name LIKE %s OR type LIKE %s", ("auto%", "auto%")),
-        ("UPDATE system_users SET deleted=1 WHERE username LIKE %s", ("auto%",)),
-        ("UPDATE system_role SET deleted=1 WHERE name LIKE %s OR code LIKE %s", ("auto%", "auto%")),
-        ("UPDATE system_menu SET deleted=1 WHERE name LIKE %s OR path LIKE %s", ("auto%", "auto%")),
-        ("UPDATE system_dept SET deleted=1 WHERE name LIKE %s", ("auto%",)),
-        ("UPDATE system_post SET deleted=1 WHERE name LIKE %s OR code LIKE %s", ("auto%", "auto%")),
+        ("DELETE FROM sys_dict_data WHERE dict_label LIKE %s OR dict_value LIKE %s", ("auto%", "auto%")),
+        ("DELETE FROM sys_dict_type WHERE dict_name LIKE %s OR dict_type LIKE %s", ("auto%", "auto%")),
+        ("UPDATE sys_user SET del_flag='2' WHERE user_name LIKE %s", ("auto%",)),
+        ("UPDATE sys_role SET del_flag='2' WHERE role_name LIKE %s OR role_key LIKE %s", ("auto%", "auto%")),
+        ("DELETE FROM sys_menu WHERE menu_name LIKE %s OR path LIKE %s", ("auto%", "auto%")),
+        ("UPDATE sys_dept SET del_flag='2' WHERE dept_name LIKE %s", ("auto%",)),
+        ("DELETE FROM sys_post WHERE post_name LIKE %s OR post_code LIKE %s", ("auto%", "auto%")),
     ]
     for sql, params in statements:
         try:

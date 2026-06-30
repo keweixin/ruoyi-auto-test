@@ -1,141 +1,102 @@
-"""岗位管理接口测试用例。
+"""岗位管理接口测试用例（RuoYi v3.9.2 原版）。
 
-覆盖 POST_API_001 ~ 009：
-- CRUD + 异常 + 编码重复 + 状态切换 + 数据库校验
-
-学习重点：普通表格 CRUD、编码唯一性校验、状态切换、表单必填校验。
+原版字段：postCode/postName/postSort/status；表 sys_post(主键post_id, del_flag)。
 """
 import allure
 import pytest
 
-from common.config import cfg
 from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 
 
+def _create_post(post_client):
+    name = gen_name("auto_post")
+    code = gen_name("auto_code")
+    body = post_client.create({"postCode": code, "postName": name, "postSort": 1, "status": "0", "remark": "auto"}).json()
+    assert_api_ok(body, "新增岗位")
+    rows = post_client.page({"postName": name}).json()["rows"]
+    return rows[0]["postId"], name, code
+
+
 @allure.feature("岗位管理接口")
 class TestPostApi:
 
-    @allure.story("新增")
     @allure.title("POST_API_001 新增岗位成功")
     def test_create_post(self, post_client):
-        data = {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
-                "sort": 1, "status": 0, "remark": "auto"}
-        body = post_client.create(data).json()
-        assert_api_ok(body, "新增岗位")
-        assert body["data"]
-        post_client.delete(body["data"])
+        post_id, name, code = _create_post(post_client)
+        assert post_id
+        post_client.delete(post_id)
 
-    @allure.story("异常")
     @allure.title("POST_API_002 新增岗位名称为空失败")
     def test_create_empty_name(self, post_client):
-        body = post_client.create(
-            {"name": "", "code": gen_name("c"), "sort": 1, "status": 0}
-        ).json()
+        body = post_client.create({"postCode": gen_name("c"), "postName": "", "postSort": 1, "status": "0"}).json()
         assert_api_fail(body, "名称为空")
 
-    @allure.story("异常")
     @allure.title("POST_API_003 新增岗位编码重复失败")
     def test_create_duplicate_code(self, post_client):
-        code = gen_name("auto_code")
-        data = {"name": gen_name("auto_post"), "code": code, "sort": 1, "status": 0}
-        first = post_client.create(data).json()
-        assert_api_ok(first, "第一次新增")
+        post_id, name, code = _create_post(post_client)
         try:
-            dup = post_client.create(
-                {"name": gen_name("auto_post2"), "code": code, "sort": 1, "status": 0}
-            ).json()
+            dup = post_client.create({"postCode": code, "postName": gen_name("p2"), "postSort": 1, "status": "0"}).json()
             assert_api_fail(dup, "编码重复")
         finally:
-            post_client.delete(first["data"])
+            post_client.delete(post_id)
 
-    @allure.story("查询")
     @allure.title("POST_API_004 查询岗位列表成功")
     def test_page_post(self, post_client):
-        name = gen_name("auto_post")
-        code = gen_name("auto_code")
-        new_id = post_client.create({"name": name, "code": code, "sort": 1, "status": 0}).json()["data"]
+        post_id, name, code = _create_post(post_client)
         try:
-            body = post_client.page({"pageNo": 1, "pageSize": 10, "name": name}).json()
+            body = post_client.page({"postName": name}).json()
             assert_api_ok(body)
-            rows = body["data"]["list"]
-            assert any(r["id"] == new_id and r["name"] == name for r in rows), "未查到本次创建的岗位"
+            rows = body["rows"]
+            assert any(r["postId"] == post_id and r["postName"] == name for r in rows), "未查到本次岗位"
         finally:
-            post_client.delete(new_id)
+            post_client.delete(post_id)
 
-    @allure.story("修改")
     @allure.title("POST_API_005 编辑岗位成功")
     def test_update_post(self, post_client):
-        new_id = post_client.create(
-            {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
-             "sort": 1, "status": 0, "remark": "auto"}
-        ).json()["data"]
+        post_id, name, code = _create_post(post_client)
         try:
-            body = post_client.update(
-                {"id": new_id, "name": gen_name("auto_post_edited"),
-                 "code": gen_name("auto_code_edited"), "sort": 2, "status": 0, "remark": "edited"}
-            ).json()
+            body = post_client.update({"postId": post_id, "postCode": code, "postName": gen_name("edited"), "postSort": 2, "status": "0"}).json()
             assert_api_ok(body, "编辑岗位")
         finally:
-            post_client.delete(new_id)
+            post_client.delete(post_id)
 
-    @allure.story("状态")
     @allure.title("POST_API_006 禁用岗位成功")
     def test_disable_post(self, post_client):
-        new_id = post_client.create(
-            {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
-             "sort": 1, "status": 0}
-        ).json()["data"]
+        post_id, name, code = _create_post(post_client)
         try:
-            body = post_client.update(
-                {"id": new_id, "name": "x", "code": gen_name("c"), "sort": 1, "status": 1}
-            ).json()
+            body = post_client.update({"postId": post_id, "postCode": code, "postName": name, "postSort": 1, "status": "1"}).json()
             assert_api_ok(body, "禁用岗位")
+            assert post_client.get(post_id).json()["data"]["status"] == "1"
         finally:
-            post_client.delete(new_id)
+            post_client.delete(post_id)
 
-    @allure.story("状态")
     @allure.title("POST_API_007 启用岗位成功")
     def test_enable_post(self, post_client):
-        new_id = post_client.create(
-            {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
-             "sort": 1, "status": 1}
-        ).json()["data"]
+        post_id, name, code = _create_post(post_client)
         try:
-            body = post_client.update(
-                {"id": new_id, "name": "x", "code": gen_name("c"), "sort": 1, "status": 0}
-            ).json()
+            post_client.update({"postId": post_id, "postCode": code, "postName": name, "postSort": 1, "status": "1"})
+            body = post_client.update({"postId": post_id, "postCode": code, "postName": name, "postSort": 1, "status": "0"}).json()
             assert_api_ok(body, "启用岗位")
+            assert post_client.get(post_id).json()["data"]["status"] == "0"
         finally:
-            post_client.delete(new_id)
+            post_client.delete(post_id)
 
-    @allure.story("删除")
     @allure.title("POST_API_008 删除岗位成功")
     def test_delete_post(self, post_client):
-        new_id = post_client.create(
-            {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
-             "sort": 1, "status": 0}
-        ).json()["data"]
-        body = post_client.delete(new_id).json()
+        post_id, name, code = _create_post(post_client)
+        body = post_client.delete(post_id).json()
         assert_api_ok(body, "删除岗位")
 
-    @allure.story("数据库校验")
     @allure.title("POST_API_009 数据库校验岗位数据正确")
     @pytest.mark.db
     def test_db_check_post(self, post_client):
-        name = gen_name("auto_post")
-        code = gen_name("auto_code")
-        new_id = post_client.create(
-            {"name": name, "code": code, "sort": 1, "status": 0, "remark": "dbcheck"}
-        ).json()["data"]
+        post_id, name, code = _create_post(post_client)
         try:
-            row = db_utils.query_one(
-                "SELECT name, code, status, deleted FROM system_post WHERE id=%s",
-                (new_id,)
-            )
-            assert row and row["name"] == name and row["code"] == code and row["deleted"] == 0
+            row = db_utils.query_one("SELECT post_name, post_code FROM sys_post WHERE post_id=%s", (post_id,))
+            assert row and row["post_name"] == name and row["post_code"] == code
             attach_text("岗位数据库记录", str(row))
         finally:
-            post_client.delete(new_id)
+            post_client.delete(post_id)

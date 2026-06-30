@@ -1,185 +1,139 @@
-"""角色管理接口测试用例。
+"""角色管理接口测试用例（RuoYi v3.9.2 原版）。
 
-覆盖 ROLE_API_001 ~ 012：
-- CRUD + 异常 + 重复 + 状态切换 + 分配菜单权限 + 查询角色菜单 + 数据库校验(角色/角色菜单关系)
-
-学习重点：权限系统理解、角色和菜单关系、数据库中间表校验。
-
-⚠ 已核对源码：RoleSaveReqVO 无 menuIds / dataScope
-   - 分配菜单走 PermissionClient.assign_role_menu
-   - 查角色菜单走 PermissionClient.list_role_menus
-   - 中间表：system_role_menu
+原版字段：roleName/roleKey/roleSort/status；菜单分配在创建时通过 menuIds。
+表 sys_role(主键role_id, role_key, del_flag) / sys_role_menu。
 """
 import allure
 import pytest
 
-from common.config import cfg
 from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 
 
+def _create_role(role_client, menu_ids=None):
+    name = gen_name("auto_role")
+    key = gen_name("auto_key")
+    body = role_client.create({
+        "roleName": name, "roleKey": key, "roleSort": 1, "status": "0", "remark": "auto",
+        "menuIds": menu_ids or []
+    }).json()
+    assert_api_ok(body, "创建角色")
+    rows = role_client.page({"roleName": name}).json()["rows"]
+    return rows[0]["roleId"], name, key
+
+
 @allure.feature("角色管理接口")
 class TestRoleApi:
 
-    def _create_role(self, role_client):
-        """辅助：创建测试角色，返回 role_id。"""
-        body = role_client.create({
-            "name": gen_name("auto_role"),
-            "code": gen_name("auto_role_code"),
-            "sort": 1,
-            "status": 0,
-            "remark": "auto",
-        }).json()
-        assert_api_ok(body, "创建角色")
-        return body["data"]
-
-    @allure.story("新增")
     @allure.title("ROLE_API_001 新增角色成功")
     def test_create_role(self, role_client):
-        rid = self._create_role(role_client)
+        rid, name, key = _create_role(role_client)
         assert rid
         role_client.delete(rid)
 
-    @allure.story("异常")
     @allure.title("ROLE_API_002 新增角色名称为空失败")
     def test_create_empty_name(self, role_client):
-        body = role_client.create(
-            {"name": "", "code": gen_name("c"), "sort": 1, "status": 0}
-        ).json()
+        body = role_client.create({"roleName": "", "roleKey": gen_name("k"), "roleSort": 1, "status": "0", "menuIds": []}).json()
         assert_api_fail(body, "名称为空")
 
-    @allure.story("异常")
     @allure.title("ROLE_API_003 新增重复角色失败")
     def test_create_duplicate(self, role_client):
-        data = {"name": gen_name("auto_role"), "code": gen_name("auto_role_code"),
-                "sort": 1, "status": 0}
-        first = role_client.create(data).json()
-        assert_api_ok(first, "第一次新增")
+        rid, name, key = _create_role(role_client)
         try:
-            dup = role_client.create(data).json()
-            assert_api_fail(dup, "重复新增")
-        finally:
-            role_client.delete(first["data"])
-
-    @allure.story("查询")
-    @allure.title("ROLE_API_004 查询角色列表成功")
-    def test_page_role(self, role_client):
-        name = gen_name("auto_role")
-        code = gen_name("auto_role_code")
-        rid = role_client.create({"name": name, "code": code, "sort": 1, "status": 0}).json()["data"]
-        try:
-            body = role_client.page({"pageNo": 1, "pageSize": 10, "name": name}).json()
-            assert_api_ok(body)
-            rows = body["data"]["list"]
-            assert any(r["id"] == rid and r["name"] == name for r in rows), "未查到本次创建的角色"
+            body = role_client.create({"roleName": name, "roleKey": key, "roleSort": 1, "status": "0", "menuIds": []}).json()
+            assert_api_fail(body, "重复新增")
         finally:
             role_client.delete(rid)
 
-    @allure.story("修改")
+    @allure.title("ROLE_API_004 查询角色列表成功")
+    def test_page_role(self, role_client):
+        rid, name, key = _create_role(role_client)
+        try:
+            body = role_client.page({"roleName": name}).json()
+            assert_api_ok(body)
+            assert any(r["roleId"] == rid and r["roleName"] == name for r in body["rows"]), "未查到本次角色"
+        finally:
+            role_client.delete(rid)
+
     @allure.title("ROLE_API_005 编辑角色成功")
     def test_update_role(self, role_client):
-        rid = self._create_role(role_client)
+        rid, name, key = _create_role(role_client)
         try:
-            body = role_client.update({
-                "id": rid, "name": gen_name("auto_role_edited"),
-                "code": gen_name("auto_role_code_edited"),
-                "sort": 2, "status": 0, "remark": "edited"
-            }).json()
+            body = role_client.update({"roleId": rid, "roleName": gen_name("edited"), "roleKey": key, "roleSort": 2, "status": "0", "menuIds": []}).json()
             assert_api_ok(body, "编辑角色")
         finally:
             role_client.delete(rid)
 
-    @allure.story("状态")
     @allure.title("ROLE_API_006 禁用角色成功")
     def test_disable_role(self, role_client):
-        rid = self._create_role(role_client)
+        rid, name, key = _create_role(role_client)
         try:
-            role = role_client.get(rid).json()["data"]
-            role["status"] = 1
-            body = role_client.update(role).json()
+            body = role_client.update({"roleId": rid, "roleName": name, "roleKey": key, "roleSort": 1, "status": "1", "menuIds": []}).json()
             assert_api_ok(body, "禁用角色")
+            assert role_client.get(rid).json()["data"]["status"] == "1"
         finally:
             role_client.delete(rid)
 
-    @allure.story("状态")
     @allure.title("ROLE_API_007 启用角色成功")
     def test_enable_role(self, role_client):
-        rid = self._create_role(role_client)
+        rid, name, key = _create_role(role_client)
         try:
-            role = role_client.get(rid).json()["data"]
-            role["status"] = 0
-            body = role_client.update(role).json()
+            role_client.update({"roleId": rid, "roleName": name, "roleKey": key, "roleSort": 1, "status": "1", "menuIds": []})
+            body = role_client.update({"roleId": rid, "roleName": name, "roleKey": key, "roleSort": 1, "status": "0", "menuIds": []}).json()
             assert_api_ok(body, "启用角色")
+            assert role_client.get(rid).json()["data"]["status"] == "0"
         finally:
             role_client.delete(rid)
 
-    @allure.story("权限分配")
     @allure.title("ROLE_API_008 给角色分配菜单权限成功")
     def test_assign_menu(self, role_client, permission_client):
-        rid = self._create_role(role_client)
+        rid, name, key = _create_role(role_client, menu_ids=[1, 2, 3])
         try:
-            body = permission_client.assign_role_menu(rid, [1, 2, 3]).json()
-            assert_api_ok(body, "分配菜单权限")
+            ids = permission_client.get_role_menu_ids(rid)
+            assert set([1, 2, 3]).issubset(set(ids)), f"菜单未全部分配 实际={ids}"
         finally:
             role_client.delete(rid)
 
-    @allure.story("权限分配")
     @allure.title("ROLE_API_009 查询角色菜单权限成功")
     def test_list_role_menus(self, role_client, permission_client):
-        rid = self._create_role(role_client)
+        rid, name, key = _create_role(role_client, menu_ids=[1, 2])
         try:
-            menu_ids = [1, 2]
-            permission_client.assign_role_menu(rid, menu_ids)
-            body = permission_client.list_role_menus(rid).json()
-            assert_api_ok(body)
-            result = set(body["data"])
-            assert set(menu_ids).issubset(result), f"菜单未全部分配 实际={result}"
+            ids = permission_client.get_role_menu_ids(rid)
+            assert set([1, 2]).issubset(set(ids)), f"菜单未查到 实际={ids}"
         finally:
             role_client.delete(rid)
 
-    @allure.story("删除")
     @allure.title("ROLE_API_010 删除测试角色成功")
     def test_delete_role(self, role_client):
-        rid = self._create_role(role_client)
+        rid, name, key = _create_role(role_client)
         body = role_client.delete(rid).json()
         assert_api_ok(body, "删除角色")
 
-    @allure.story("数据库校验")
     @allure.title("ROLE_API_011 数据库校验角色信息正确")
     @pytest.mark.db
     def test_db_check_role(self, role_client):
         name = gen_name("auto_role")
-        code = gen_name("auto_role_code")
-        rid = role_client.create(
-            {"name": name, "code": code, "sort": 1, "status": 0, "remark": "dbcheck"}
-        ).json()["data"]
+        key = gen_name("auto_key")
+        role_client.create({"roleName": name, "roleKey": key, "roleSort": 1, "status": "0", "menuIds": []})
+        rows = role_client.page({"roleName": name}).json()["rows"]
+        rid = rows[0]["roleId"]
         try:
-            row = db_utils.query_one(
-                "SELECT name, code, status, deleted FROM system_role WHERE id=%s",
-                (rid,)
-            )
-            assert row and row["name"] == name and row["code"] == code and row["deleted"] == 0
+            row = db_utils.query_one("SELECT role_name, role_key, del_flag FROM sys_role WHERE role_id=%s", (rid,))
+            assert row and row["role_name"] == name and row["role_key"] == key and row["del_flag"] == "0"
             attach_text("角色数据库记录", str(row))
         finally:
             role_client.delete(rid)
 
-    @allure.story("数据库校验")
     @allure.title("ROLE_API_012 数据库校验角色菜单关系正确")
     @pytest.mark.db
     def test_db_check_role_menu(self, role_client, permission_client):
-        rid = self._create_role(role_client)
-        assigned = [1, 2, 3]
+        rid, name, key = _create_role(role_client, menu_ids=[1, 2, 3])
         try:
-            permission_client.assign_role_menu(rid, assigned)
-            rows = db_utils.query_all(
-                "SELECT menu_id FROM system_role_menu WHERE role_id=%s AND deleted=0",
-                (rid,)
-            )
-            db_menu_ids = {r["menu_id"] for r in rows}
-            assert set(assigned).issubset(db_menu_ids), \
-                f"中间表菜单关系不完整 db={db_menu_ids}"
+            rows = db_utils.query_all("SELECT menu_id FROM sys_role_menu WHERE role_id=%s", (rid,))
+            db_ids = {r["menu_id"] for r in rows}
+            assert set([1, 2, 3]).issubset(db_ids), f"中间表菜单关系不完整 db={db_ids}"
             attach_text("角色菜单关系数据库记录", str(rows))
         finally:
             role_client.delete(rid)

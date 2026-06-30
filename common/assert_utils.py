@@ -8,13 +8,13 @@ from common.logger import log
 
 
 def assert_api_ok(body, msg=""):
-    """断言接口业务成功（code == 0）。"""
-    assert body.get("code") == 0, f"{msg} 业务失败 code={body.get('code')} msg={body.get('msg')} body={body}"
+    """断言接口业务成功（若依原版 code == 200）。"""
+    assert body.get("code") == 200, f"{msg} 业务失败 code={body.get('code')} msg={body.get('msg')} body={body}"
 
 
 def assert_api_fail(body, msg=""):
-    """断言接口业务失败（code != 0）。"""
-    assert body.get("code") != 0, f"{msg} 期望失败但成功了 body={body}"
+    """断言接口业务失败（code != 200）。"""
+    assert body.get("code") != 200, f"{msg} 期望失败但成功了 body={body}"
 
 
 def assert_field(actual, expected, field_name=""):

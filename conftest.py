@@ -51,6 +51,17 @@ def cleanup_after_test():
         log.warning("自动清理 fixture 执行失败: %s", exc)
 
 
+def _web_ready():
+    """检查前端是否可访问（HTTP 非 404 视为可用）。"""
+    import requests
+    from common.config import cfg
+    try:
+        r = requests.get(cfg.web_url, timeout=3)
+        return r.status_code != 404
+    except Exception:
+        return False
+
+
 @pytest.fixture(scope="session")
 def admin_token():
     """session 级管理员 token。禁止在 logout 类用例中消费它。"""
@@ -59,7 +70,7 @@ def admin_token():
     body = client.login(cfg.admin_user, cfg.admin_pwd).json()
     assert_api_ok(body, "管理员登录")
     log.info("====== session 管理员 token 获取成功 ======")
-    return body["data"]["accessToken"]
+    return body["data"]["token"] if isinstance(body.get("data"), dict) else body["token"]
 
 
 @pytest.fixture
@@ -68,7 +79,7 @@ def logout_token():
     client = AuthClient(cfg.base_url, cfg.tenant_id)
     body = client.login(cfg.admin_user, cfg.admin_pwd).json()
     assert_api_ok(body, "退出登录专用 token 登录")
-    return body["data"]["accessToken"]
+    return body["data"]["token"] if isinstance(body.get("data"), dict) else body["token"]
 
 
 @pytest.fixture
@@ -113,16 +124,18 @@ def permission_client(admin_token):
 
 @pytest.fixture(scope="session")
 def storage_state(tmp_path_factory):
-    """登录一次保存 UI 登录态，业务 UI 用例复用。"""
+    """登录一次保存 UI 登录态，业务 UI 用例复用。前端未启动时跳过。"""
+    if not _web_ready():
+        pytest.skip("前端未启动，跳过 UI 用例")
     state_file = tmp_path_factory.mktemp("auth") / "state.json"
     log.info("====== UI 登录，保存 session 登录态 ======")
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(cfg.web_url)
-        page.get_by_placeholder("请输入账号").fill(cfg.admin_user)
+        page.get_by_placeholder("请输入用户名").fill(cfg.admin_user)
         page.get_by_placeholder("请输入密码").fill(cfg.admin_pwd)
-        page.get_by_role("button", name="登 录").click()
+        page.get_by_role("button", name="登录").click()
         page.wait_for_url("**/index**", timeout=15000)
         page.context.storage_state(path=str(state_file))
         browser.close()
@@ -147,7 +160,9 @@ def page(storage_state):
 
 @pytest.fixture
 def fresh_page():
-    """无登录态页面，供登录/退出/权限隔离类测试使用。"""
+    """无登录态页面，供登录/退出/权限隔离类测试使用。前端未启动时跳过。"""
+    if not _web_ready():
+        pytest.skip("前端未启动，跳过 UI 用例")
     os.makedirs(TRACES_DIR, exist_ok=True)
     trace_path = os.path.join(TRACES_DIR, f"trace_fresh_{int(time.time())}.zip")
     with sync_playwright() as p:

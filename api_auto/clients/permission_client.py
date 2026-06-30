@@ -1,44 +1,24 @@
-"""PermissionClient：权限分配接口客户端（角色↔菜单、用户↔角色）。
+"""PermissionClient：权限分配接口客户端（RuoYi v3.9.2 原版）。
 
-已核对源码 PermissionController.java（/system/permission）：
-- GET  /list-role-menus?roleId=           查询某角色的菜单 id 集合（返回 Set<Long>）
-- POST /assign-role-menu   body: {roleId, menuIds}   ← 给角色分配菜单权限
-- POST /assign-role-data-scope  body: {roleId, dataScope, dataScopeDeptIds}
-- GET  /list-user-roles?userId=          查询某用户的角色 id 集合
-- POST /assign-user-role   body: {userId, roleIds}   ← 给用户分配角色
+- GET  /system/role/menuTreeselect/{roleId}  查询某角色菜单树
+- POST /system/role/dataScope  给角色分配数据权限
+- 隐含：角色创建/修改时通过 body.menuIds 分配菜单（原版在 role 接口）
 
-数据库表：
-- system_role_menu（角色菜单关系，继承 TenantBaseDO）
-- system_user_role（用户角色关系，继承 BaseDO）
+数据库表：sys_role_menu(role_id, menu_id)
 """
 from api_auto.base.base_api import BaseApi
 
 
 class PermissionClient(BaseApi):
-    """权限分配接口客户端。"""
+    """权限分配接口客户端（原版通过 role 接口的 menuIds 分配菜单）。"""
 
-    # ===== 角色 ↔ 菜单 =====
-    def list_role_menus(self, role_id):
-        """查询某角色已分配的菜单 id 集合。"""
-        return self.get("/system/permission/list-role-menus", params={"roleId": role_id})
+    def role_menu_treeselect(self, role_id):
+        """查询某角色的菜单树（含已选 checkedKeys）。"""
+        return self.request("GET", f"/system/menu/roleMenuTreeselect/{role_id}")
 
-    def assign_role_menu(self, role_id, menu_ids):
-        """给角色分配菜单权限。menu_ids: list[int]。"""
-        return self.post("/system/permission/assign-role-menu",
-                         json={"roleId": role_id, "menuIds": menu_ids})
-
-    def assign_role_data_scope(self, role_id, data_scope, data_scope_dept_ids=None):
-        """给角色分配数据权限。data_scope 见 DataScopeEnum。"""
-        return self.post("/system/permission/assign-role-data-scope",
-                         json={"roleId": role_id, "dataScope": data_scope,
-                               "dataScopeDeptIds": data_scope_dept_ids or []})
-
-    # ===== 用户 ↔ 角色 =====
-    def list_user_roles(self, user_id):
-        """查询某用户已绑定的角色 id 集合。"""
-        return self.get("/system/permission/list-user-roles", params={"userId": user_id})
-
-    def assign_user_role(self, user_id, role_ids):
-        """给用户分配角色。role_ids: list[int]。"""
-        return self.post("/system/permission/assign-user-role",
-                         json={"userId": user_id, "roleIds": role_ids})
+    def get_role_menu_ids(self, role_id):
+        """从菜单树响应中取出已选菜单 id 列表（checkedKeys）。"""
+        resp = self.role_menu_treeselect(role_id).json()
+        if resp.get("code") == 200:
+            return resp.get("checkedKeys", [])
+        return []

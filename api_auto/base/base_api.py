@@ -8,11 +8,11 @@
 - 没有报告附件       → 自动把请求/响应附加到 Allure
 - 没有超时/异常处理   → timeout + try
 
-若依约定（已核对源码）：
-- 全局前缀 /admin-api（在此拼接）
-- 请求头 tenant-id（连字符）
-- token 格式：Authorization: Bearer <accessToken>
-- 统一响应 { code, data, msg }，code==0 成功
+若依原版约定（已实测 Docker 中 RuoYi v3.9.2）：
+- 接口无统一前缀，直接 /login /system/...
+- 登录返回 data.token（不是 accessToken）
+- 鉴权头 Authorization: Bearer <token>，无 tenant-id
+- 统一响应 { code, msg, data/rows }，code==200 成功
 """
 import requests
 
@@ -26,9 +26,9 @@ ADMIN_API_PREFIX = "/admin-api"
 class BaseApi:
     """所有 Client 的基类，封装通用 HTTP 请求方法。"""
 
-    def __init__(self, base_url, tenant_id="1"):
+    def __init__(self, base_url, tenant_id=None):
         self.base_url = base_url.rstrip("/")
-        self.tenant_id = str(tenant_id)
+        self.tenant_id = str(tenant_id) if tenant_id else None
         self.token = None
 
     def set_token(self, token):
@@ -36,8 +36,10 @@ class BaseApi:
         self.token = token
 
     def get_headers(self, extra=None):
-        """生成统一请求头：tenant-id + Authorization。"""
-        headers = {"tenant-id": self.tenant_id}
+        """生成统一请求头：Authorization（原版无 tenant-id）。"""
+        headers = {}
+        if self.tenant_id:
+            headers["tenant-id"] = self.tenant_id
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         if extra:
@@ -47,11 +49,10 @@ class BaseApi:
     def request(self, method, path, **kwargs):
         """统一请求入口：记日志 + Allure 附件。
 
-        path 可以传 "/system/auth/login"，会自动拼上 /admin-api 前缀。
+        path 直接传如 "/login" "/system/dict/type/list"（原版无前缀）。
         kwargs 支持 params= / json= / headers= 等（透传给 requests）。
         """
-        # 自动补全 admin-api 前缀
-        full_path = path if path.startswith(ADMIN_API_PREFIX) else ADMIN_API_PREFIX + path
+        full_path = path
         url = self.base_url + full_path
         headers = self.get_headers(kwargs.pop("headers", None))
 
