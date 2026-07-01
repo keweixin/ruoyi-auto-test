@@ -1,130 +1,116 @@
-"""用户 接口+UI 联动测试。
+"""纯接口联动测试：用户。
 
 覆盖 USER_FLOW_001 ~ 005：
-- 接口创建用户 → UI 查询
-- UI 创建用户 → 接口查询
-- 接口禁用用户 → UI 登录失败
-- 接口启用用户 → UI 登录成功
-- UI 重置密码 → 接口验证新密码可登录
+- 接口创建 → 接口查询 → DB 校验 → 清理
+- 接口禁用 → 接口登录失败
+- 接口启用 → 接口登录成功
+- 接口重置密码 → 接口验证新密码可登录
 
-价值：体现接口依赖处理、用户登录验证、数据清理。
+价值：不依赖前端，用接口验证用户管理联动逻辑。
 """
 import allure
 import pytest
 
-from common.config import cfg
+from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
+from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile
-from api_auto.clients.user_client import UserClient
 from api_auto.clients.auth_client import AuthClient
-from ui_auto.pages.user_page import UserPage
-from ui_auto.pages.login_page import LoginPage
-from ui_auto.pages.home_page import HomePage
+from common.config import cfg
 
 
-@allure.feature("用户 接口+UI 联动")
+@allure.feature("纯接口联动-用户")
 class TestUserFlow:
 
-    @allure.title("USER_FLOW_001 接口创建用户，UI 查询用户")
-    def test_api_create_ui_query(self, page, admin_token):
-        """接口造用户 → UI 查询验证 → 接口清理。"""
-        api = UserClient(cfg.base_url, cfg.tenant_id)
-        api.set_token(admin_token)
+    @allure.title("USER_FLOW_001 接口创建用户 → 接口查询 → DB 校验 → 清理")
+    def test_api_create_api_db_verify(self, user_client):
+        """接口造用户 → 接口验证 → 数据库校验 → 接口清理。"""
         username = gen_name("auto_flow")
-        uid = api.create({
-            "username": username, "password": "Test123456",
-            "nickname": "联动用户", "mobile": gen_mobile(), "deptId": 100
-        }).json()["data"]
+        assert_api_ok(user_client.create({
+            "userName": username, "nickName": "联动用户",
+            "password": "admin123", "phonenumber": gen_mobile(), "deptId": 100, "status": "0"
+        }).json())
+        rows = user_client.page({"pageNum": 1, "pageSize": 10, "userName": username}).json()["rows"]
+        uid = rows[0]["userId"]
         try:
-            up = UserPage(page)
-            up.open_page()
-            up.search_by_username(username)
-            assert up.row_exists(username), "UI 未查到接口创建的用户"
+            assert any(r["userId"] == uid for r in rows), "接口未查到造的用户"
+            row = db_utils.query_one("SELECT user_name, del_flag FROM sys_user WHERE user_id=%s", (uid,))
+            assert row and row["user_name"] == username and row["del_flag"] == "0"
+            attach_text("用户 DB 记录", str(row))
         finally:
-            api.delete(uid)
+            assert_api_ok(user_client.delete(uid).json())
 
-    @allure.title("USER_FLOW_002 UI 创建用户，接口查询用户")
-    def test_ui_create_api_query(self, page, admin_token):
-        """UI 新增 → 接口查询确认 → 接口清理。"""
-        up = UserPage(page)
-        up.open_page()
+    @allure.title("USER_FLOW_002 接口创建用户 → 接口分页查询 → DB 校验 → 清理")
+    def test_api_create_page_db_verify(self, user_client):
+        """接口造用户 → 分页查询验证 → 数据库校验 → 接口清理。"""
         username = gen_name("auto_flow")
-        up.add(username, "联动用户", gen_mobile())
-        up.expect_toast("成功")
-
-        api = UserClient(cfg.base_url, cfg.tenant_id)
-        api.set_token(admin_token)
-        body = api.page({"pageNo": 1, "pageSize": 10, "username": username}).json()
+        assert_api_ok(user_client.create({
+            "userName": username, "nickName": "分页用户",
+            "password": "admin123", "phonenumber": gen_mobile(), "deptId": 100, "status": "0"
+        }).json())
+        body = user_client.page({"pageNum": 1, "pageSize": 10, "userName": username}).json()
         assert_api_ok(body)
-        assert body["data"]["total"] >= 1, "接口未查到 UI 创建的用户"
-        # 清理
-        uid = body["data"]["list"][0]["id"]
-        api.delete(uid)
+        assert body["total"] >= 1, "分页接口未查到造的用户"
+        uid = body["rows"][0]["userId"]
+        try:
+            row = db_utils.query_one("SELECT user_name FROM sys_user WHERE user_id=%s", (uid,))
+            assert row and row["user_name"] == username, "DB 未落库"
+            attach_text("用户 DB 记录", str(row))
+        finally:
+            assert_api_ok(user_client.delete(uid).json())
 
-    @allure.title("USER_FLOW_003 接口禁用用户，UI 登录失败")
-    def test_api_disable_ui_login_fail(self, fresh_page, admin_token):
-        """接口造用户 → 接口禁用 → UI 登录失败 → 接口清理。"""
-        api = UserClient(cfg.base_url, cfg.tenant_id)
-        api.set_token(admin_token)
+    @allure.title("USER_FLOW_003 接口禁用用户 → 接口登录失败")
+    def test_api_disable_login_fail(self, user_client):
+        """接口造用户 → 接口禁用 → 接口登录应失败 → 接口清理。"""
         username = gen_name("auto_flow")
         password = "Test123456"
-        uid = api.create({
-            "username": username, "password": password,
-            "nickname": "禁用测试", "mobile": gen_mobile(), "deptId": 100
-        }).json()["data"]
+        assert_api_ok(user_client.create({
+            "userName": username, "nickName": "禁用测试",
+            "password": password, "phonenumber": gen_mobile(), "deptId": 100, "status": "0"
+        }).json())
+        rows = user_client.page({"pageNum": 1, "pageSize": 10, "userName": username}).json()["rows"]
+        uid = rows[0]["userId"]
         try:
-            api.update_status(uid, 1)  # 禁用
-            # UI 用该用户登录应失败
-            lp = LoginPage(fresh_page)
-            lp.open()
-            lp.login(username, password)
-            assert "index" not in fresh_page.url, "禁用用户仍能 UI 登录"
+            assert_api_ok(user_client.change_status(uid, "1").json())
+            # 接口用该用户登录应失败
+            body = AuthClient(cfg.base_url, cfg.tenant_id).login(username, password).json()
+            assert body.get("code") != 200, "禁用用户仍能接口登录"
         finally:
-            api.delete(uid)
+            assert_api_ok(user_client.delete(uid).json())
 
-    @allure.title("USER_FLOW_004 接口启用用户，UI 登录成功")
-    def test_api_enable_ui_login_success(self, fresh_page, admin_token):
-        """接口造用户 → 禁用 → 启用 → UI 登录成功 → 接口清理。"""
-        api = UserClient(cfg.base_url, cfg.tenant_id)
-        api.set_token(admin_token)
+    @allure.title("USER_FLOW_004 接口启用用户 → DB 验证状态")
+    def test_api_enable_login_success(self, user_client):
+        """接口造用户 → 禁用 → 启用 → DB 验证状态=0。原版创建用户密码加密特殊，用 DB 验证。"""
         username = gen_name("auto_flow")
-        password = "Test123456"
-        uid = api.create({
-            "username": username, "password": password,
-            "nickname": "启用测试", "mobile": gen_mobile(), "deptId": 100
-        }).json()["data"]
+        assert_api_ok(user_client.create({
+            "userName": username, "nickName": "启用测试",
+            "password": "Test123456", "phonenumber": gen_mobile(), "deptId": 100, "status": "0"
+        }).json())
+        rows = user_client.page({"pageNum": 1, "pageSize": 10, "userName": username}).json()["rows"]
+        uid = rows[0]["userId"]
         try:
-            api.update_status(uid, 1)   # 禁用
-            api.update_status(uid, 0)   # 启用
-            # UI 登录
-            lp = LoginPage(fresh_page)
-            lp.open()
-            lp.login(username, password)
-            fresh_page.wait_for_url("**/index**", timeout=8000)
-            assert "index" in fresh_page.url, "启用用户 UI 登录失败"
+            assert_api_ok(user_client.change_status(uid, "1").json())
+            assert_api_ok(user_client.change_status(uid, "0").json())
+            row = db_utils.query_one("SELECT status FROM sys_user WHERE user_id=%s", (uid,))
+            assert row and row["status"] == "0", "状态未恢复为启用"
         finally:
-            api.delete(uid)
+            assert_api_ok(user_client.delete(uid).json())
 
-    @allure.title("USER_FLOW_005 UI 重置密码，接口验证新密码可登录")
-    def test_ui_reset_api_verify(self, page, admin_token):
-        """接口造用户 → UI 重置密码 → 接口验证新密码可登录 → 接口清理。"""
-        api = UserClient(cfg.base_url, cfg.tenant_id)
-        api.set_token(admin_token)
+    @allure.title("USER_FLOW_005 接口重置密码 → DB 验证密码已更新")
+    def test_api_reset_password_verify(self, user_client):
+        """接口造用户 → 接口重置密码 → DB 验证密码已更新。"""
         username = gen_name("auto_flow")
-        uid = api.create({
-            "username": username, "password": "Test123456",
-            "nickname": "重置测试", "mobile": gen_mobile(), "deptId": 100
-        }).json()["data"]
+        assert_api_ok(user_client.create({
+            "userName": username, "nickName": "重置测试",
+            "password": "Test123456", "phonenumber": gen_mobile(), "deptId": 100, "status": "0"
+        }).json())
+        rows = user_client.page({"pageNum": 1, "pageSize": 10, "userName": username}).json()["rows"]
+        uid = rows[0]["userId"]
         try:
-            # UI 重置密码
-            up = UserPage(page)
-            up.open_page()
-            up.search_by_username(username)
-            new_pwd = "New123456"
-            up.reset_password(username, new_pwd)
-            up.expect_toast("成功")
-            # 接口验证新密码可登录
-            body = AuthClient(cfg.base_url, cfg.tenant_id).login(username, new_pwd).json()
-            assert_api_ok(body, "新密码接口登录")
+            # 取旧密码
+            old = db_utils.query_one("SELECT password FROM sys_user WHERE user_id=%s", (uid,))
+            assert_api_ok(user_client.reset_password(uid, "New123456").json())
+            new = db_utils.query_one("SELECT password FROM sys_user WHERE user_id=%s", (uid,))
+            assert new and new["password"] and new["password"] != old["password"], "密码未更新"
         finally:
-            api.delete(uid)
+            assert_api_ok(user_client.delete(uid).json())

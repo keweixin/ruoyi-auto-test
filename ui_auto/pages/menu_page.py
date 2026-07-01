@@ -24,12 +24,13 @@ class MenuPage(BasePage):
 
     def add(self, name, menu_type="菜单"):
         """新增菜单。menu_type: 目录/菜单/按钮。"""
-        self.page.get_by_role("button", name="新增").click()
-        dialog = self.page.locator(".el-dialog").first
-        dialog.get_by_label("菜单名称").fill(name)
+        self.page.get_by_role("button", name="新增").first.click()
+        dialog = self.page.locator(".el-dialog").filter(visible=True).first
+        dialog.get_by_placeholder("请输入菜单名称").fill(name)
         # 选择菜单类型（radio）
         dialog.get_by_text(menu_type, exact=True).click()
-        dialog.get_by_role("button", name="确 定").click()
+        dialog.get_by_text("确 定").click()
+        self.page.wait_for_timeout(800)
 
     def row_exists(self, keyword):
         return self.table_has_row(keyword)
@@ -37,5 +38,5 @@ class MenuPage(BasePage):
     def delete_row(self, keyword):
         self.safe_auto_keyword(keyword)
         row = self.table_row_by_keyword(keyword)
-        row.get_by_role("button", name="删除").click()
-        self.page.locator(".el-message-box").get_by_role("button", name="确 定").click()
+        row.get_by_text("删除").click()
+        self.page.locator(".el-message-box").get_by_text("确定").click()

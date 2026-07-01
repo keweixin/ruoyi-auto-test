@@ -19,8 +19,8 @@ class LoginPage(BasePage):
         super().__init__(page)
         self.web_url = web_url or cfg.web_url
         # 元素定位集中管理（语义化）
-        self.username_input = page.get_by_placeholder("请输入账号")
-        self.password_input = page.get_by_placeholder("请输入密码")
+        self.username_input = page.get_by_placeholder("账号")
+        self.password_input = page.get_by_placeholder("密码")
         self.login_btn = page.get_by_role("button", name="登 录")
 
     def open(self):

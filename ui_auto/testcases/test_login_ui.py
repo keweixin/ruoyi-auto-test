@@ -7,7 +7,8 @@
 注意：登录类用例用 fresh_page（无登录态），否则无法测登录流程。
 """
 import allure
-import pytest
+from urllib.parse import urlparse
+from playwright.sync_api import expect
 
 from common.config import cfg
 from ui_auto.pages.login_page import LoginPage
@@ -35,22 +36,24 @@ class TestLoginUi:
         toast = lp.get_error_toast()
         assert toast, "未出现错误提示"
         # 仍停留在登录页
-        assert "index" not in fresh_page.url
+        assert urlparse(fresh_page.url).path == "/login"
 
     @allure.title("AUTH_UI_003 用户名为空提示")
     def test_login_empty_username(self, fresh_page):
         lp = LoginPage(fresh_page)
         lp.open()
         lp.login("", cfg.admin_pwd)
-        # 表单校验：应出现必填提示或未跳转
-        assert "index" not in fresh_page.url, "空用户名仍登录成功"
+        # 表单校验：应出现必填提示并停留在登录页
+        expect(fresh_page.locator(".el-form-item__error").first).to_be_visible()
+        assert urlparse(fresh_page.url).path == "/login", "空用户名仍登录成功"
 
     @allure.title("AUTH_UI_004 密码为空提示")
     def test_login_empty_password(self, fresh_page):
         lp = LoginPage(fresh_page)
         lp.open()
         lp.login(cfg.admin_user, "")
-        assert "index" not in fresh_page.url, "空密码仍登录成功"
+        expect(fresh_page.locator(".el-form-item__error").first).to_be_visible()
+        assert urlparse(fresh_page.url).path == "/login", "空密码仍登录成功"
 
     @allure.title("AUTH_UI_005 登录后进入首页")
     def test_login_then_home(self, fresh_page):
@@ -79,16 +82,13 @@ class TestLoginUi:
         fresh_page.wait_for_url("**/index**", timeout=10000)
 
         hp = HomePage(fresh_page)
-        try:
-            hp.logout()
-            fresh_page.wait_for_url("**/login**", timeout=8000)
-            assert "login" in fresh_page.url
-        except Exception:
-            pytest.skip("退出按钮定位需按本地前端调整")
+        hp.logout()
+        fresh_page.wait_for_url("**/login**", timeout=8000)
+        assert urlparse(fresh_page.url).path == "/login"
 
     @allure.title("AUTH_UI_008 未登录访问首页跳回登录页")
     def test_unauth_redirect(self, fresh_page):
         fresh_page.goto(cfg.web_url + "/index")
         # 未登录应被重定向到登录页
         fresh_page.wait_for_url("**/login**", timeout=8000)
-        assert "login" in fresh_page.url
+        assert urlparse(fresh_page.url).path == "/login"
