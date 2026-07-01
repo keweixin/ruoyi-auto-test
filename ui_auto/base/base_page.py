@@ -28,19 +28,15 @@ class BasePage:
         self.page.wait_for_url(f"**{part}**", timeout=timeout)
 
     def toast_text(self, timeout=8000):
-        """等待并获取 Toast 文本。原版消失快则返回空。"""
+        """等待并获取 Toast 文本；找不到 Toast 时直接失败，避免假通过。"""
         toast = self.page.locator(".el-message").first
-        try:
-            toast.wait_for(state="visible", timeout=timeout)
-            return toast.inner_text()
-        except Exception:
-            return ""
+        toast.wait_for(state="visible", timeout=timeout)
+        return toast.inner_text()
 
     def expect_toast(self, expect_text, timeout=8000):
-        """断言 Toast 文本。消失太快则跳过。"""
+        """断言 Toast 文本必须出现并包含期望关键字。"""
         text = self.toast_text(timeout)
-        if text:
-            assert expect_text in text, f"Toast 期望含'{expect_text}'，实际'{text}'"
+        assert expect_text in text, f"Toast 期望含'{expect_text}'，实际'{text}'"
 
     def click_menu(self, *names):
         for name in names:

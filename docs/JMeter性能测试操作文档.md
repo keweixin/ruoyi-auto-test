@@ -1,8 +1,9 @@
 # JMeter 性能测试操作文档
 
-> 项目：RuoYi-Vue-Pro 后台管理系统接口与 UI 自动化测试项目  
+> 项目：RuoYi v3.9.2 后台管理系统接口与 UI 自动化测试项目  
 > 性能测试工具：Apache JMeter  
-> 目标：补充一个可讲解、可执行、适合应届测试岗位面试的性能测试场景。  
+> 目标：补充一个可讲解、可导入执行的 JMeter 性能测试方案。  
+> 说明：当前已提供 `.jmx` 测试计划，但未产出真实 `.jtl` 或 HTML 性能报告；简历只能写“编写/设计 JMeter 性能测试方案”。
 
 ---
 
@@ -29,7 +30,7 @@
 ```text
 登录接口
    ↓
-提取 accessToken
+提取 token
    ↓
 携带 token 查询字典类型分页接口
 ```
@@ -51,35 +52,31 @@
 
 ```text
 请求方法：POST
-请求地址：http://localhost:48080/admin-api/system/auth/login
+请求地址：http://localhost:8080/login
 请求头：
   Content-Type: application/json
-  tenant-id: 1
-请求体：
+  请求体：
 {
   "username": "admin",
   "password": "admin123"
 }
 返回字段：
-  data.accessToken
+  token
 ```
 
-> 注意：若依默认开启验证码。为了接口自动化和 JMeter 压测方便，建议在本地测试环境关闭验证码：
+> 注意：原版若依默认开启验证码。为了接口自动化和 JMeter 压测方便，已在数据库 sys_config 中关闭 sys.account.captchaEnabled：
 
 ```yaml
-yudao:
-  captcha:
-    enable: false
+sys.account.captchaEnabled=false
 ```
 
 ### 3.2 字典类型分页接口
 
 ```text
 请求方法：GET
-请求地址：http://localhost:48080/admin-api/system/dict-type/page?pageNo=1&pageSize=10
+请求地址：http://localhost:8080/system/dict/type/list?pageNum=1&pageSize=10
 请求头：
-  tenant-id: 1
-  Authorization: Bearer ${accessToken}
+    Authorization: Bearer ${token}
 ```
 
 ---
@@ -93,14 +90,14 @@ yudao:
 ```text
 1. MySQL
 2. Redis
-3. RuoYi-Vue-Pro 后端服务，端口 48080
+3. RuoYi v3.9.2 后端服务，端口 8080
 4. 前端可选，本次 JMeter 只测接口，不依赖前端
 ```
 
 验证后端可访问：
 
 ```text
-http://localhost:48080/doc.html
+http://localhost:8080/
 ```
 
 ### 4.2 安装 JMeter
@@ -206,9 +203,8 @@ Ramp-Up 10 秒：10 秒内逐步启动 20 个用户，避免瞬间打满；
 | 名称 | 值 |
 |------|----|
 | Content-Type | application/json |
-| tenant-id | 1 |
 
-> 登录接口和业务接口都需要 `tenant-id`。业务接口还需要 `Authorization`，后面在业务请求里单独加。
+> 业务接口需要 `Authorization`，后面在业务请求里单独加。
 
 ---
 
@@ -230,7 +226,7 @@ Ramp-Up 10 秒：10 秒内逐步启动 20 个用户，避免瞬间打满；
 
 ```text
 方法：POST
-路径：/admin-api/system/auth/login
+路径：/login
 ```
 
 在 `Body Data` 中填写：
@@ -255,9 +251,9 @@ Ramp-Up 10 秒：10 秒内逐步启动 20 个用户，避免瞬间打满；
 配置：
 
 ```text
-名称：提取 accessToken
-变量名：accessToken
-JSONPath 表达式：$.data.accessToken
+名称：提取 token
+变量名：token
+JSONPath 表达式：$.token
 匹配编号：1
 默认值：TOKEN_NOT_FOUND
 ```
@@ -265,8 +261,8 @@ JSONPath 表达式：$.data.accessToken
 作用：
 
 ```text
-从登录响应中提取 data.accessToken，保存到变量 ${accessToken}。
-后续请求可以用 ${accessToken} 作为 token。
+从登录响应中提取 token，保存到变量 ${token}。
+后续请求可以用 ${token} 作为 token。
 ```
 
 ---
@@ -290,7 +286,7 @@ JSONPath 表达式：$.data.accessToken
 也可以断言响应中包含：
 
 ```text
-accessToken
+token
 ```
 
 意义：
@@ -319,14 +315,14 @@ accessToken
 
 ```text
 方法：GET
-路径：/admin-api/system/dict-type/page
+路径：/system/dict/type/list
 ```
 
 参数：
 
 | 名称 | 值 |
 |------|----|
-| pageNo | 1 |
+| pageNum | 1 |
 | pageSize | 10 |
 
 ---
@@ -343,13 +339,12 @@ accessToken
 
 | 名称 | 值 |
 |------|----|
-| Authorization | Bearer ${accessToken} |
-| tenant-id | 1 |
+| Authorization | Bearer ${token} |
 
 说明：
 
 ```text
-${accessToken} 是第 10 步 JSON 提取器提取出来的变量。
+${token} 是第 10 步 JSON 提取器提取出来的变量。
 业务接口必须携带 Authorization，否则会返回 401。
 ```
 
@@ -556,9 +551,7 @@ P95 响应时间：xxx ms
 解决：在本地环境配置中加入：
 
 ```yaml
-yudao:
-  captcha:
-    enable: false
+sys.account.captchaEnabled=false
 ```
 
 重启后端。
@@ -570,9 +563,9 @@ yudao:
 检查：
 
 ```text
-1. JSON 提取器变量名是否是 accessToken；
-2. JSONPath 是否是 $.data.accessToken；
-3. Authorization 是否写成 Bearer ${accessToken}；
+1. JSON 提取器变量名是否是 token；
+2. JSONPath 是否是 $.token；
+3. Authorization 是否写成 Bearer ${token}；
 4. 登录请求是否成功。
 ```
 
@@ -584,7 +577,6 @@ yudao:
 
 ```text
 1. 查看结果树中的响应体；
-2. 检查 tenant-id 是否为 1；
 3. 检查 token 是否有效；
 4. 检查后端日志。
 ```
@@ -624,7 +616,7 @@ rmdir /s /q E:\ruoyi\test\jmeter\html-report
 可以这样说：
 
 ```text
-我在自动化测试项目之外，补充了一个 JMeter 性能测试场景。场景是先调用登录接口获取 token，通过 JSON 提取器提取 accessToken，再把 token 放到 Authorization 请求头里访问字典分页接口。测试时我关注平均响应时间、P95、错误率和吞吐量。这样既能体现我了解接口性能测试流程，也能说明我知道带鉴权接口如何做压测。
+我在自动化测试项目之外，补充了一个 JMeter 性能测试场景。场景是先调用登录接口获取 token，通过 JSON 提取器提取 token，再把 token 放到 Authorization 请求头里访问字典分页接口。测试时我关注平均响应时间、P95、错误率和吞吐量。这样既能体现我了解接口性能测试流程，也能说明我知道带鉴权接口如何做压测。
 ```
 
 如果面试官追问“为什么不用 UI 做性能测试”，回答：

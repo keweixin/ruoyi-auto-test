@@ -3,6 +3,12 @@
 .env.*
 data/env.yaml
 
+# Python 虚拟环境
+.venv/
+
+# Windows 保留名异常文件
+nul
+
 # 临时产物
 reports/
 screenshots/
