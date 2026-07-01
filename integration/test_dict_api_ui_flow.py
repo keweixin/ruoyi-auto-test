@@ -17,6 +17,7 @@ from common.random_utils import gen_name
 
 
 @allure.feature("纯接口联动-字典")
+@pytest.mark.flow
 class TestDictFlow:
 
     @allure.title("DICT_FLOW_001 接口创建字典类型 → 接口查询 → DB 校验 → 清理")

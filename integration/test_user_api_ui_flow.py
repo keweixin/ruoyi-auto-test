@@ -20,6 +20,7 @@ from common.config import cfg
 
 
 @allure.feature("纯接口联动-用户")
+@pytest.mark.flow
 class TestUserFlow:
 
     @allure.title("USER_FLOW_001 接口创建用户 → 接口查询 → DB 校验 → 清理")

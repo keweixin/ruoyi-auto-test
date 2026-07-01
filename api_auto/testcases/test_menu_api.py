@@ -8,14 +8,18 @@ import pytest
 
 from common.assert_utils import assert_api_ok
 from common.random_utils import gen_name
+from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
 
 
 @allure.feature("菜单管理接口")
+@pytest.mark.api
 class TestMenuApi:
 
     @allure.title("MENU_API_001 查询菜单列表成功")
+    @pytest.mark.smoke
     def test_list_menu(self, menu_client):
         body = menu_client.list().json()
+        assert_schema(body, LIST_DATA_SCHEMA)
         assert_api_ok(body)
         assert isinstance(body["data"], list) and len(body["data"]) > 0
 

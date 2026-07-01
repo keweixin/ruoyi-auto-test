@@ -6,6 +6,7 @@
 策略：API 造数据 → UI 打开页面 → UI 搜索验证 → API 清理。增删改操作用 API 而非 UI 交互。
 """
 import allure
+import pytest
 
 from common.random_utils import gen_name
 from common.assert_utils import assert_api_ok
@@ -13,6 +14,7 @@ from ui_auto.pages.post_page import PostPage
 
 
 @allure.feature("岗位管理 UI")
+@pytest.mark.ui
 class TestPostUi:
 
     @allure.title("POST_UI_001 进入岗位管理页面成功")

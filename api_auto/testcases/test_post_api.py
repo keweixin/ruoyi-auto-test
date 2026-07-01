@@ -9,6 +9,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
+from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA, DETAIL_SCHEMA
 
 
 def _create_post(post_client):
@@ -21,6 +22,7 @@ def _create_post(post_client):
 
 
 @allure.feature("岗位管理接口")
+@pytest.mark.api
 class TestPostApi:
 
     @allure.title("POST_API_001 新增岗位成功")
@@ -44,10 +46,12 @@ class TestPostApi:
             post_client.delete(post_id)
 
     @allure.title("POST_API_004 查询岗位列表成功")
+    @pytest.mark.smoke
     def test_page_post(self, post_client):
         post_id, name, code = _create_post(post_client)
         try:
             body = post_client.page({"postName": name}).json()
+            assert_schema(body, PAGE_LIST_SCHEMA)
             assert_api_ok(body)
             rows = body["rows"]
             assert any(r["postId"] == post_id and r["postName"] == name for r in rows), "未查到本次岗位"
@@ -69,7 +73,9 @@ class TestPostApi:
         try:
             body = post_client.update({"postId": post_id, "postCode": code, "postName": name, "postSort": 1, "status": "1"}).json()
             assert_api_ok(body, "禁用岗位")
-            assert post_client.get(post_id).json()["data"]["status"] == "1"
+            post_body = post_client.get(post_id).json()
+            assert_schema(post_body, DETAIL_SCHEMA)
+            assert post_body["data"]["status"] == "1"
         finally:
             post_client.delete(post_id)
 

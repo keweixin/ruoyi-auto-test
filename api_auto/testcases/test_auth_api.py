@@ -14,14 +14,16 @@ import pytest
 from common.config import cfg
 from common.assert_utils import assert_api_ok, assert_api_fail
 from api_auto.clients.auth_client import AuthClient
+from common.schema_utils import assert_schema, LOGIN_SCHEMA, GET_INFO_SCHEMA
 
 
 @allure.feature("登录认证接口")
+@pytest.mark.api
 class TestAuthApi:
 
     @allure.story("登录")
     @pytest.mark.parametrize("username,password,expect_ok,desc", [
-        (cfg.admin_user, cfg.admin_pwd, True,  "AUTH_API_001 正确账号密码登录成功"),
+        pytest.param(cfg.admin_user, cfg.admin_pwd, True,  "AUTH_API_001 正确账号密码登录成功", marks=pytest.mark.smoke),
         (cfg.admin_user, "wrong_pwd",   False, "AUTH_API_002 错误密码登录失败"),
         ("",             cfg.admin_pwd, False, "AUTH_API_003 用户名为空登录失败"),
         (cfg.admin_user, "",            False, "AUTH_API_004 密码为空登录失败"),
@@ -31,6 +33,7 @@ class TestAuthApi:
         client = AuthClient(cfg.base_url)
         body = client.login(username, password).json()
         if expect_ok:
+            assert_schema(body, LOGIN_SCHEMA)
             assert_api_ok(body, "正确登录")
             token = body.get("data", {}).get("token") if isinstance(body.get("data"), dict) else body.get("token")
             assert token, "token 为空"
@@ -39,8 +42,10 @@ class TestAuthApi:
 
     @allure.story("获取用户信息")
     @allure.title("AUTH_API_005 获取当前登录用户信息成功")
+    @pytest.mark.smoke
     def test_get_info_success(self, auth_client):
         body = auth_client.get_info().json()
+        assert_schema(body, GET_INFO_SCHEMA)
         assert_api_ok(body)
         assert body["user"], "用户信息为空"
 

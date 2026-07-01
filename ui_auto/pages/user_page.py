@@ -18,12 +18,12 @@ class UserPage(BasePage):
     def search_by_username(self, username):
         self.fill_vue(self.page.get_by_placeholder("请输入用户名称").first, username)
         self.page.get_by_text("搜索").first.click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def search_by_mobile(self, mobile):
         self.fill_vue(self.page.get_by_placeholder("请输入手机号码").first, mobile)
         self.page.get_by_text("搜索").first.click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def reset_search(self):
         self.page.get_by_text("重置").first.click()
@@ -37,7 +37,7 @@ class UserPage(BasePage):
         self.fill_vue(dialog.get_by_placeholder("请输入手机号码").first, mobile)
         self.fill_vue(dialog.get_by_placeholder("请输入用户密码").first, "Test123456")
         dialog.get_by_text("确 定").click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def row_exists(self, keyword):
         return self.table_has_row(keyword)
@@ -52,7 +52,7 @@ class UserPage(BasePage):
         msgbox.wait_for(state="visible", timeout=5000)
         self.fill_vue(msgbox.get_by_role("textbox"), new_pwd)
         msgbox.get_by_text("确定").click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def delete_row(self, keyword):
         self.safe_auto_keyword(keyword)

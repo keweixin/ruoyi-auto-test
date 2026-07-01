@@ -6,6 +6,7 @@
 策略：API 先造数据，UI 做验证/编辑/删除；用表格/API 验证代替 toast 断言。
 """
 import allure
+import pytest
 
 from common.random_utils import gen_name
 from ui_auto.pages.role_page import RolePage
@@ -19,6 +20,7 @@ def _get_role_id(role_client, role_name):
 
 
 @allure.feature("角色管理 UI")
+@pytest.mark.ui
 class TestRoleUi:
 
     # ── ROLE_UI_001 ──────────────────────────────────────────────
@@ -73,7 +75,7 @@ class TestRoleUi:
             new_name = gen_name("auto_edited")
             rp.fill_vue(dialog.get_by_placeholder("请输入角色名称").first, new_name)
             dialog.get_by_text("确 定").click()
-            rp.page.wait_for_timeout(800)
+            rp.page.wait_for_load_state("networkidle", timeout=5000)
             # 表格验证：重新搜索新名称
             rp.search_by_name(new_name)
             assert rp.row_exists(new_name), "编辑后未查到新名称"
@@ -146,7 +148,7 @@ class TestRoleUi:
             rp.open_page()
             rp.search_by_name(name)
             rp.delete_row(name)
-            rp.page.wait_for_timeout(800)
+            rp.page.wait_for_load_state("networkidle", timeout=5000)
             # 重新搜索验证已删除
             rp.search_by_name(name)
             assert not rp.row_exists(name), "删除后仍能查到角色"

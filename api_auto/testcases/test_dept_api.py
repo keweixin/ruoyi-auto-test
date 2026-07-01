@@ -9,6 +9,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
+from common.schema_utils import assert_schema, LIST_DATA_SCHEMA, DETAIL_SCHEMA
 
 
 def _create_dept(dept_client):
@@ -20,6 +21,7 @@ def _create_dept(dept_client):
 
 
 @allure.feature("部门管理接口")
+@pytest.mark.api
 class TestDeptApi:
 
     @allure.title("DEPT_API_001 新增部门成功")
@@ -43,8 +45,10 @@ class TestDeptApi:
             dept_client.delete(dept_id)
 
     @allure.title("DEPT_API_004 查询部门列表成功")
+    @pytest.mark.smoke
     def test_list_dept(self, dept_client):
         body = dept_client.list().json()
+        assert_schema(body, LIST_DATA_SCHEMA)
         assert_api_ok(body)
         assert isinstance(body["data"], list) and len(body["data"]) > 0
 
@@ -55,7 +59,9 @@ class TestDeptApi:
             new_name = gen_name("auto_edited")
             body = dept_client.update({"deptId": dept_id, "parentId": 100, "deptName": new_name, "orderNum": 1, "status": "0"}).json()
             assert_api_ok(body, "修改部门")
-            assert dept_client.get(dept_id).json()["data"]["deptName"] == new_name
+            dept_body = dept_client.get(dept_id).json()
+            assert_schema(dept_body, DETAIL_SCHEMA)
+            assert dept_body["data"]["deptName"] == new_name
         finally:
             dept_client.delete(dept_id)
 

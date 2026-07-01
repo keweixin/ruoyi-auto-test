@@ -20,6 +20,7 @@ from api_auto.clients.auth_client import AuthClient
 
 
 @allure.feature("纯接口联动-角色权限")
+@pytest.mark.flow
 class TestRolePermissionFlow:
 
     @allure.title("ROLE_FLOW_001 接口创建角色 → 接口查询 → DB 校验 → 清理")

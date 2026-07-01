@@ -10,6 +10,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
+from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA, DETAIL_SCHEMA
 
 
 def _create_type(dict_client):
@@ -23,6 +24,7 @@ def _create_type(dict_client):
 
 
 @allure.feature("字典管理接口")
+@pytest.mark.api
 class TestDictApi:
 
     @allure.title("DICT_API_001 新增字典类型成功")
@@ -52,10 +54,13 @@ class TestDictApi:
             dict_client.delete_type(dict_id)
 
     @allure.title("DICT_API_004 按字典名称查询成功")
+    @pytest.mark.smoke
     def test_list_type_by_name(self, dict_client):
         dict_id, name, type_ = _create_type(dict_client)
         try:
-            rows = dict_client.list_type({"dictName": name}).json()["rows"]
+            body = dict_client.list_type({"dictName": name}).json()
+            assert_schema(body, PAGE_LIST_SCHEMA)
+            rows = body["rows"]
             assert any(r["dictName"] == name for r in rows), "按名称未查到"
         finally:
             dict_client.delete_type(dict_id)
@@ -76,7 +81,9 @@ class TestDictApi:
             new_name = gen_name("auto_edited")
             body = dict_client.update_type({"dictId": dict_id, "dictName": new_name, "dictType": type_, "status": "0"}).json()
             assert_api_ok(body, "修改字典类型")
-            after = dict_client.get_type(dict_id).json()["data"]
+            after_body = dict_client.get_type(dict_id).json()
+            assert_schema(after_body, DETAIL_SCHEMA)
+            after = after_body["data"]
             assert after["dictName"] == new_name, "名称未更新"
         finally:
             dict_client.delete_type(dict_id)

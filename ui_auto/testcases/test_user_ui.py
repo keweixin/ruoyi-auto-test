@@ -6,6 +6,7 @@
 策略：API 先造数据，UI 做验证/编辑/删除；用表格/API 验证代替 toast 断言。
 """
 import allure
+import pytest
 
 from common.config import cfg
 from common.assert_utils import assert_api_ok
@@ -22,6 +23,7 @@ def _get_user_id(user_client, user_name):
 
 
 @allure.feature("用户管理 UI")
+@pytest.mark.ui
 class TestUserUi:
 
     # ── USER_UI_001 ──────────────────────────────────────────────
@@ -124,7 +126,7 @@ class TestUserUi:
             new_nick = gen_name("auto_edited")
             up.fill_vue(dialog.get_by_placeholder("请输入用户昵称"), new_nick)
             dialog.get_by_text("确 定").click()
-            up.page.wait_for_timeout(800)
+            up.page.wait_for_load_state("networkidle", timeout=5000)
             # API 验证昵称已变更
             user_info = user_client.get(uid).json()
             actual_nick = user_info.get("data", {}).get("nickName", "")
@@ -189,7 +191,7 @@ class TestUserUi:
             up.open_page()
             up.search_by_username(user_name)
             up.delete_row(user_name)
-            up.page.wait_for_timeout(800)
+            up.page.wait_for_load_state("networkidle", timeout=5000)
             # 重新搜索，验证已删除
             up.search_by_username(user_name)
             assert not up.row_exists(user_name), "删除后仍能查到用户"

@@ -7,6 +7,7 @@
 注意：登录类用例用 fresh_page（无登录态），否则无法测登录流程。
 """
 import allure
+import pytest
 from urllib.parse import urlparse
 from playwright.sync_api import expect
 
@@ -16,6 +17,7 @@ from ui_auto.pages.home_page import HomePage
 
 
 @allure.feature("登录模块 UI")
+@pytest.mark.ui
 class TestLoginUi:
 
     @allure.title("AUTH_UI_001 正确账号密码登录成功")

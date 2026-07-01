@@ -1,13 +1,14 @@
 """根 conftest.py：全项目共享 fixture。
 
-作用：
-- 把项目根目录加入 import 路径；
-- 统一提供 API token、各业务 Client、Playwright page/fresh_page；
-- integration 目录能直接使用 admin_token / page / fresh_page；
-- logout 使用独立 token，避免污染 session 管理员 token；
-- UI 失败自动截图并附加到 Allure。
+优化点：
+- API/UI/integration 共用一套 fixture；
+- Playwright 浏览器 session 级复用，每条用例只新建 context/page；
+- Trace 仅在失败时保存，成功用例不落盘；
+- 失败截图仅失败时保存并附加 Allure；
+- 每条用例结束后执行本轮前缀数据清理。
 """
 import os
+import re
 import sys
 import time
 
@@ -34,6 +35,10 @@ TRACES_DIR = os.path.join(BASE_DIR, "traces")
 SCREENSHOTS_DIR = os.path.join(BASE_DIR, "screenshots")
 
 
+def _safe_artifact_name(node_name):
+    """把 pytest 用例名转成安全文件名，避免参数化用例名包含路径特殊字符。"""
+    return re.sub(r"[^0-9A-Za-z_.-]+", "_", node_name).strip("_") or "test"
+
 def _new_auth_client_with_token(token):
     client = AuthClient(cfg.base_url, cfg.tenant_id)
     client.set_token(token)
@@ -42,7 +47,7 @@ def _new_auth_client_with_token(token):
 
 @pytest.fixture(autouse=True)
 def cleanup_after_test():
-    """每条用例结束后兜底清理 auto_* 测试数据，防止 UI/联动失败残留。"""
+    """每条用例结束后兜底清理本轮 TEST_RUN_PREFIX 测试数据。"""
     yield
     try:
         from common.cleanup_utils import cleanup_auto_data
@@ -52,9 +57,7 @@ def cleanup_after_test():
 
 
 def _web_ready():
-    """检查前端是否可访问（HTTP 非 404 视为可用）。"""
     import requests
-    from common.config import cfg
     try:
         r = requests.get(cfg.web_url, timeout=3)
         return r.status_code != 404
@@ -64,7 +67,6 @@ def _web_ready():
 
 @pytest.fixture(scope="session")
 def admin_token():
-    """session 级管理员 token。禁止在 logout 类用例中消费它。"""
     log.info("====== 开始登录获取 session 管理员 token ======")
     client = AuthClient(cfg.base_url, cfg.tenant_id)
     body = client.login(cfg.admin_user, cfg.admin_pwd).json()
@@ -75,7 +77,6 @@ def admin_token():
 
 @pytest.fixture
 def logout_token():
-    """function 级独立 token，专供退出登录测试使用，避免污染 admin_token。"""
     client = AuthClient(cfg.base_url, cfg.tenant_id)
     body = client.login(cfg.admin_user, cfg.admin_pwd).json()
     assert_api_ok(body, "退出登录专用 token 登录")
@@ -123,68 +124,94 @@ def permission_client(admin_token):
 
 
 @pytest.fixture(scope="session")
-def storage_state(tmp_path_factory):
-    """登录一次保存 UI 登录态，业务 UI 用例复用。前端未启动时跳过。"""
+def playwright_instance():
+    with sync_playwright() as p:
+        yield p
+
+
+@pytest.fixture(scope="session")
+def browser(playwright_instance):
     if not _web_ready():
         pytest.skip("前端未启动，跳过 UI 用例")
+    browser = playwright_instance.chromium.launch(headless=True)
+    yield browser
+    browser.close()
+
+
+@pytest.fixture(scope="session")
+def storage_state(browser, tmp_path_factory):
+    """登录一次保存 UI 登录态，业务 UI 用例复用。"""
     state_file = tmp_path_factory.mktemp("auth") / "state.json"
     log.info("====== UI 登录，保存 session 登录态 ======")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(cfg.web_url)
-        page.get_by_placeholder("账号").fill(cfg.admin_user)
-        page.get_by_placeholder("密码").fill(cfg.admin_pwd)
-        page.get_by_role("button", name="登 录").click()
-        page.wait_for_url("**/index**", timeout=15000)
-        page.context.storage_state(path=str(state_file))
-        browser.close()
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto(cfg.web_url)
+    page.get_by_placeholder("账号").fill(cfg.admin_user)
+    page.get_by_placeholder("密码").fill(cfg.admin_pwd)
+    page.get_by_role("button", name="登 录").click()
+    page.wait_for_url("**/index**", timeout=15000)
+    context.storage_state(path=str(state_file))
+    context.close()
     log.info("====== UI session 登录态保存完成 ======")
     return str(state_file)
 
 
 @pytest.fixture
-def page(storage_state):
-    """带登录态的页面，供业务 UI 与联动测试使用。"""
-    os.makedirs(TRACES_DIR, exist_ok=True)
-    trace_path = os.path.join(TRACES_DIR, f"trace_{int(time.time())}.zip")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(storage_state=storage_state)
-        context.tracing.start(screenshots=True, snapshots=True, sources=True)
-        pg = context.new_page()
+def page(browser, storage_state, request):
+    """带登录态的页面。session 级 browser 复用；失败时才保存 trace。"""
+    context = browser.new_context(storage_state=storage_state)
+    context.tracing.start(screenshots=True, snapshots=True, sources=True)
+    pg = context.new_page()
+    try:
         yield pg
-        context.tracing.stop(path=trace_path)
-        browser.close()
+    finally:
+        failed = getattr(request.node, "rep_call", None) and request.node.rep_call.failed
+        if failed:
+            os.makedirs(TRACES_DIR, exist_ok=True)
+            trace_path = os.path.join(
+                TRACES_DIR,
+                f"trace_{_safe_artifact_name(request.node.name)}_{int(time.time())}.zip",
+            )
+            context.tracing.stop(path=trace_path)
+            log.info("失败 trace 已保存: %s", trace_path)
+        else:
+            context.tracing.stop()
+        context.close()
 
 
 @pytest.fixture
-def fresh_page():
-    """无登录态页面，供登录/退出/权限隔离类测试使用。前端未启动时跳过。"""
-    if not _web_ready():
-        pytest.skip("前端未启动，跳过 UI 用例")
-    os.makedirs(TRACES_DIR, exist_ok=True)
-    trace_path = os.path.join(TRACES_DIR, f"trace_fresh_{int(time.time())}.zip")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
-        context.tracing.start(screenshots=True, snapshots=True, sources=True)
-        pg = context.new_page()
+def fresh_page(browser, request):
+    """无登录态页面。session 级 browser 复用；失败时才保存 trace。"""
+    context = browser.new_context()
+    context.tracing.start(screenshots=True, snapshots=True, sources=True)
+    pg = context.new_page()
+    try:
         yield pg
-        context.tracing.stop(path=trace_path)
-        browser.close()
+    finally:
+        failed = getattr(request.node, "rep_call", None) and request.node.rep_call.failed
+        if failed:
+            os.makedirs(TRACES_DIR, exist_ok=True)
+            trace_path = os.path.join(
+                TRACES_DIR,
+                f"trace_fresh_{_safe_artifact_name(request.node.name)}_{int(time.time())}.zip",
+            )
+            context.tracing.stop(path=trace_path)
+            log.info("失败 trace 已保存: %s", trace_path)
+        else:
+            context.tracing.stop()
+        context.close()
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """UI 用例失败时自动截图。"""
     outcome = yield
     report = outcome.get_result()
+    setattr(item, "rep_" + report.when, report)
     if report.when == "call" and report.failed:
         pg = item.funcargs.get("page") or item.funcargs.get("fresh_page")
         if pg is not None:
             os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
-            shot_path = os.path.join(SCREENSHOTS_DIR, f"{item.name}_{int(time.time())}.png")
+            shot_path = os.path.join(SCREENSHOTS_DIR, f"{_safe_artifact_name(item.name)}_{int(time.time())}.png")
             try:
                 pg.screenshot(path=shot_path)
                 attach_png("失败截图", shot_path)

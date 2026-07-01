@@ -14,6 +14,7 @@ from ui_auto.pages.menu_page import MenuPage
 
 
 @allure.feature("菜单管理 UI")
+@pytest.mark.ui
 class TestMenuUi:
 
     @allure.title("MENU_UI_001 进入菜单管理页面成功")

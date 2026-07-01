@@ -26,7 +26,7 @@ pipeline {
 
         stage('清理历史产物') {
             steps {
-                sh 'rm -rf reports/allure-results reports/allure-report logs screenshots traces'
+                sh 'rm -rf reports/allure-report logs screenshots traces'
                 sh 'mkdir -p reports/allure-results logs screenshots traces'
             }
         }

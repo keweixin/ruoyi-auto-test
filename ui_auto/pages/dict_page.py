@@ -23,7 +23,7 @@ class DictPage(BasePage):
         """打开字典数据页。原版路由 /system/dict-data/index/:dictId。
         新建字典类型可能无数据，等 .el-table 而非 .el-table__row。"""
         self.open(f"{cfg.web_url}{self.DATA_URL}/{dict_id}")
-        self.page.wait_for_timeout(2000)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
         self.page.locator(".el-table").first.wait_for(state="visible", timeout=10000)
 
     # ===== 查询 =====

@@ -29,7 +29,7 @@ class PostPage(BasePage):
         dialog.get_by_placeholder("请输入岗位名称").fill(name)
         dialog.get_by_placeholder("请输入岗位编码").fill(code)
         dialog.get_by_text("确 定").click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def row_exists(self, keyword):
         return self.table_has_row(keyword)

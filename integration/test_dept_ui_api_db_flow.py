@@ -14,6 +14,7 @@ from common.random_utils import gen_name
 
 
 @allure.feature("纯接口联动-部门岗位")
+@pytest.mark.flow
 class TestDeptPostApiDbFlow:
 
     @allure.title("FLOW_001 接口新增部门 → 接口查询 → 数据库校验 → 接口清理")

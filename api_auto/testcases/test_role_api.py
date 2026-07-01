@@ -10,6 +10,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
+from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA, DETAIL_SCHEMA
 
 
 def _create_role(role_client, menu_ids=None):
@@ -25,9 +26,11 @@ def _create_role(role_client, menu_ids=None):
 
 
 @allure.feature("角色管理接口")
+@pytest.mark.api
 class TestRoleApi:
 
     @allure.title("ROLE_API_001 新增角色成功")
+    @pytest.mark.smoke
     def test_create_role(self, role_client):
         rid, name, key = _create_role(role_client)
         assert rid
@@ -48,10 +51,12 @@ class TestRoleApi:
             role_client.delete(rid)
 
     @allure.title("ROLE_API_004 查询角色列表成功")
+    @pytest.mark.smoke
     def test_page_role(self, role_client):
         rid, name, key = _create_role(role_client)
         try:
             body = role_client.page({"roleName": name}).json()
+            assert_schema(body, PAGE_LIST_SCHEMA)
             assert_api_ok(body)
             assert any(r["roleId"] == rid and r["roleName"] == name for r in body["rows"]), "未查到本次角色"
         finally:
@@ -72,7 +77,9 @@ class TestRoleApi:
         try:
             body = role_client.update({"roleId": rid, "roleName": name, "roleKey": key, "roleSort": 1, "status": "1", "menuIds": []}).json()
             assert_api_ok(body, "禁用角色")
-            assert role_client.get(rid).json()["data"]["status"] == "1"
+            role_body = role_client.get(rid).json()
+            assert_schema(role_body, DETAIL_SCHEMA)
+            assert role_body["data"]["status"] == "1"
         finally:
             role_client.delete(rid)
 

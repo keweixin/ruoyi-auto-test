@@ -30,7 +30,7 @@ class MenuPage(BasePage):
         # 选择菜单类型（radio）
         dialog.get_by_text(menu_type, exact=True).click()
         dialog.get_by_text("确 定").click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def row_exists(self, keyword):
         return self.table_has_row(keyword)

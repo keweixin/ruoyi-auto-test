@@ -6,10 +6,12 @@
 - 按钮用 get_by_role("button", name="修改"/"删除")
 """
 import allure
+import pytest
 from common.random_utils import gen_name
 from ui_auto.pages.dept_page import DeptPage
 
 @allure.feature("部门管理 UI")
+@pytest.mark.ui
 class TestDeptUi:
 
     @allure.title("DEPT_UI_001 进入部门管理页面成功")
@@ -111,7 +113,7 @@ class TestDeptUi:
             dp = DeptPage(page); dp.open_page()
             dp.search_by_name(name)
             dp.delete_row(name)
-            dp.page.wait_for_timeout(800)
+            dp.page.wait_for_load_state("networkidle", timeout=5000)
             dp.search_by_name(name)
             assert not dp.row_exists(name), "删除后仍能查到"
         finally:

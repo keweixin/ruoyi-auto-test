@@ -7,11 +7,13 @@
 - 表格加载用 .el-table__row 等待
 """
 import allure
+import pytest
 from common.random_utils import gen_name
 from ui_auto.pages.dict_page import DictPage
 
 
 @allure.feature("字典管理 UI")
+@pytest.mark.ui
 class TestDictUi:
 
     # ==================== 字典类型 ====================
@@ -126,7 +128,7 @@ class TestDictUi:
             dp = DictPage(page); dp.open_type_page()
             dp.search_by_name(name)
             dp.delete_row(name)
-            dp.page.wait_for_timeout(800)
+            dp.page.wait_for_load_state("networkidle", timeout=5000)
             dp.search_by_name(name)
             assert not dp.row_exists(name), "删除后仍能查到"
         finally:
@@ -213,7 +215,7 @@ class TestDictUi:
             # 删除
             page.locator(".el-table__row").filter(has_text=label).get_by_role("button", name="删除").click()
             page.locator(".el-message-box").get_by_text("确定").click()
-            page.wait_for_timeout(800)
+            page.wait_for_load_state("networkidle", timeout=5000)
             # 搜索验证消失
             page.get_by_placeholder("请输入字典标签").fill("")
             page.get_by_placeholder("请输入字典标签").fill(label)

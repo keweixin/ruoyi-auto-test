@@ -18,7 +18,7 @@ class RolePage(BasePage):
     def search_by_name(self, name):
         self.fill_vue(self.page.get_by_placeholder("请输入角色名称").first, name)
         self.page.get_by_text("搜索").first.click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def reset_search(self):
         self.page.get_by_text("重置").first.click()
@@ -30,7 +30,7 @@ class RolePage(BasePage):
         self.fill_vue(dialog.get_by_placeholder("请输入角色名称").first, name)
         self.fill_vue(dialog.get_by_placeholder("请输入角色权限字符").first, code)
         dialog.get_by_text("确 定").click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def row_exists(self, keyword):
         return self.table_has_row(keyword)
@@ -45,7 +45,7 @@ class RolePage(BasePage):
             for name in menu_names:
                 dialog.get_by_text(name).first.click()
         dialog.get_by_text("确 定").click()
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_load_state("networkidle", timeout=5000)
 
     def delete_row(self, keyword):
         self.safe_auto_keyword(keyword)

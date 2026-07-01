@@ -21,6 +21,7 @@ from api_auto.clients.permission_client import PermissionClient
 
 
 @allure.feature("纯接口联动")
+@pytest.mark.flow
 class TestApiFlow:
 
     @allure.title("DICT_API_FLOW 接口造字典→接口查→DB校验→清理")

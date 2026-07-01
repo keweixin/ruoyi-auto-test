@@ -11,6 +11,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile
+from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA, DETAIL_SCHEMA
 from api_auto.clients.auth_client import AuthClient
 
 
@@ -26,9 +27,11 @@ def _create_user(user_client):
 
 
 @allure.feature("用户管理接口")
+@pytest.mark.api
 class TestUserApi:
 
     @allure.title("USER_API_001 新增后台用户成功")
+    @pytest.mark.smoke
     def test_create_user(self, user_client):
         uid, username = _create_user(user_client)
         assert uid
@@ -60,10 +63,12 @@ class TestUserApi:
             user_client.delete(uid)
 
     @allure.title("USER_API_005 按用户名查询用户成功")
+    @pytest.mark.smoke
     def test_page_by_username(self, user_client):
         uid, username = _create_user(user_client)
         try:
             body = user_client.page({"userName": username}).json()
+            assert_schema(body, PAGE_LIST_SCHEMA)
             assert_api_ok(body)
             assert any(r["userId"] == uid for r in body["rows"]), "按用户名未查到"
         finally:
@@ -72,7 +77,9 @@ class TestUserApi:
     @allure.title("USER_API_006 按手机号查询用户成功")
     def test_page_by_mobile(self, user_client):
         uid, username = _create_user(user_client)
-        mobile = user_client.get(uid).json()["data"]["phonenumber"]
+        user_body = user_client.get(uid).json()
+        assert_schema(user_body, DETAIL_SCHEMA)
+        mobile = user_body["data"]["phonenumber"]
         try:
             body = user_client.page({"phonenumber": mobile}).json()
             assert_api_ok(body)
