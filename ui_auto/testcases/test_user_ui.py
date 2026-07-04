@@ -5,7 +5,7 @@
 import allure
 import pytest
 
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_not_found
 from common.test_data import create_user, DEFAULT_RESET_PASSWORD
 from ui_auto.pages.user_page import UserPage
 
@@ -127,4 +127,4 @@ class TestUserUi:
         up.delete_row(username)
         up.expect_toast("成功")
         body = user_client.get(uid).json()
-        assert body.get("code") != 0 or not body.get("data"), "UI 删除后接口仍能查到用户"
+        assert_not_found(body)

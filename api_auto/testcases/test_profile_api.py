@@ -11,7 +11,7 @@ import allure
 import pytest
 
 from common.config import cfg
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from common.test_data import DEFAULT_PASSWORD
 from api_auto.clients.auth_client import AuthClient
 
@@ -25,8 +25,7 @@ class TestProfileApi:
     @pytest.mark.smoke
     def test_get_profile(self, profile_client):
         """获取当前登录用户个人信息：返回 admin 的 id/username/nickname。"""
-        body = profile_client.get_profile().json()
-        assert_api_ok(body)
+        body = assert_response_ok(profile_client.get_profile())
         user = body["data"]
         assert user["id"], "未返回用户 id"
         assert user["username"] == cfg.admin_user, \
@@ -44,13 +43,11 @@ class TestProfileApi:
         new_pwd = "New" + old_pwd  # 简单变换，确保与原密码不同
         try:
             # 修改密码
-            body = profile_client.update_password(old_pwd, new_pwd).json()
-            assert_api_ok(body, "修改密码")
+            assert_response_ok(profile_client.update_password(old_pwd, new_pwd), "修改密码")
             # 用新密码能登录
-            login_body = AuthClient(cfg.base_url, cfg.tenant_id).login(
+            login_body = assert_response_ok(AuthClient(cfg.base_url, cfg.tenant_id).login(
                 cfg.admin_user, new_pwd
-            ).json()
-            assert_api_ok(login_body, "新密码登录")
+            ), "新密码登录")
         finally:
             # 改回原密码（best-effort）
             try:
@@ -62,8 +59,7 @@ class TestProfileApi:
     @allure.title("PROFILE_API_003 旧密码错误时修改密码失败")
     def test_update_password_wrong_old(self, profile_client):
         """旧密码错误时修改密码应失败。"""
-        body = profile_client.update_password("wrong_old_pwd", "NewPwd123456").json()
-        assert_api_fail(body, "旧密码错误")
+        assert_response_fail(profile_client.update_password("wrong_old_pwd", "NewPwd123456"), "旧密码错误")
 
     @allure.story("个人信息")
     @allure.title("PROFILE_API_004 修改个人昵称成功")
@@ -73,8 +69,7 @@ class TestProfileApi:
         original = profile_client.get_profile().json()["data"]["nickname"]
         new_nickname = "auto_test_nickname"
         try:
-            body = profile_client.update_profile({"nickname": new_nickname}).json()
-            assert_api_ok(body, "修改昵称")
+            assert_response_ok(profile_client.update_profile({"nickname": new_nickname}), "修改昵称")
             # 验证已更新
             updated = profile_client.get_profile().json()["data"]["nickname"]
             assert updated == new_nickname, f"昵称期望 {new_nickname}，实际 {updated}"

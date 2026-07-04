@@ -5,7 +5,7 @@
 import allure
 import pytest
 
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_not_found
 from common.random_utils import gen_name
 from ui_auto.pages.dict_page import DictPage
 
@@ -133,7 +133,7 @@ class TestDictUi:
         dp.delete_row(name)
         dp.expect_toast("成功")
         body = dict_client.get_type(type_id).json()
-        assert body.get("code") != 0 or not body.get("data"), "UI 删除后接口仍能查到字典类型"
+        assert_not_found(body)
 
     @allure.title("DICT_UI_011 新增字典数据后页面可查询")
     def test_add_dict_data(self, page, dict_client):
@@ -177,7 +177,7 @@ class TestDictUi:
             dp.delete_data_row(label)
             dp.expect_toast("成功")
             body = dict_client.get_data(data_id).json()
-            assert body.get("code") != 0 or not body.get("data"), "UI 删除后接口仍能查到字典数据"
+            assert_not_found(body)
         finally:
             dict_client.delete_data(data_id)
             dict_client.delete_type(type_id)

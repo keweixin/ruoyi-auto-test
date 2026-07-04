@@ -5,7 +5,7 @@
 import allure
 import pytest
 
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_not_found
 from common.random_utils import gen_name
 from common.test_data import create_role
 from ui_auto.pages.role_page import RolePage
@@ -106,4 +106,4 @@ class TestRoleUi:
         rp.delete_row(name)
         rp.expect_toast("成功")
         body = role_client.get(rid).json()
-        assert body.get("code") != 0 or not body.get("data"), "UI 删除后接口仍能查到角色"
+        assert_not_found(body)

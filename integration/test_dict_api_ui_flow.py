@@ -9,7 +9,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_not_found
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 
@@ -76,7 +76,7 @@ class TestDictFlow:
         dict_id = dict_client.create_type({"name": name, "type": type_, "status": 0}).json()["data"]
         assert_api_ok(dict_client.delete_type(dict_id).json())
         body = dict_client.get_type(dict_id).json()
-        assert body.get("code") != 0 or not body.get("data"), "接口仍能查到已删字典"
+        assert_not_found(body)
         row = db_utils.query_one("SELECT deleted + 0 AS deleted FROM system_dict_type WHERE id=%s", (dict_id,))
         assert row is None or row["deleted"] == 1, f"数据库未标记逻辑删除: {row}"
         attach_text("删除后字典 DB 记录", str(row))

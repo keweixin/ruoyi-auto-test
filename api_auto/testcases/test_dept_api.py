@@ -11,7 +11,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
@@ -116,7 +116,7 @@ class TestDeptApi:
         ).json()["data"]
         dept_client.delete(new_id)
         body = dept_client.get(new_id).json()
-        assert body.get("code") != 0 or not body.get("data"), "删除后仍能查到"
+        assert_not_found(body)
 
     @allure.story("数据库校验")
     @allure.title("DEPT_API_010 数据库校验部门数据正确")
