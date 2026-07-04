@@ -199,11 +199,7 @@ class TestUserApi:
     def test_db_check_user(self, user_client):
         uid, username, _ = self._create_user(user_client)
         try:
-            row = db_utils.query_one(
-                "SELECT username, status, deleted + 0 AS deleted FROM system_users WHERE id=%s",
-                (uid,)
-            )
-            assert row and row["username"] == username and row["deleted"] == 0
-            attach_text("用户数据库记录", str(row))
+            db_utils.assert_db_record("system_users", uid,
+                                      {"username": username}, "用户数据库记录")
         finally:
             user_client.delete(uid)

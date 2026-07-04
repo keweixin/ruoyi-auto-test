@@ -16,6 +16,7 @@ from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
+from common.test_data import with_created_entity
 
 
 _POST_CASES, _POST_IDS = build_parametrize(load_create_cases("post"))
@@ -96,32 +97,20 @@ class TestPostApi:
     @allure.story("状态")
     @allure.title("POST_API_006 禁用岗位成功")
     def test_disable_post(self, post_client):
-        new_id = post_client.create(
-            {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
-             "sort": 1, "status": 0}
-        ).json()["data"]
-        try:
-            body = post_client.update(
-                {"id": new_id, "name": "x", "code": gen_name("c"), "sort": 1, "status": 1}
-            ).json()
-            assert_api_ok(body, "禁用岗位")
-        finally:
-            post_client.delete(new_id)
+        with with_created_entity(post_client, "post") as ent:
+            post = post_client.get(ent.id).json()["data"]
+            post["status"] = 1
+            assert_api_ok(post_client.update(post).json(), "禁用岗位")
 
     @allure.story("状态")
     @allure.title("POST_API_007 启用岗位成功")
     def test_enable_post(self, post_client):
-        new_id = post_client.create(
-            {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
-             "sort": 1, "status": 1}
-        ).json()["data"]
-        try:
-            body = post_client.update(
-                {"id": new_id, "name": "x", "code": gen_name("c"), "sort": 1, "status": 0}
-            ).json()
-            assert_api_ok(body, "启用岗位")
-        finally:
-            post_client.delete(new_id)
+        with with_created_entity(post_client, "post") as ent:
+            post = post_client.get(ent.id).json()["data"]
+            post["status"] = 1
+            post_client.update(post).json()
+            post["status"] = 0
+            assert_api_ok(post_client.update(post).json(), "启用岗位")
 
     @allure.story("删除")
     @allure.title("POST_API_008 删除岗位成功")
@@ -143,11 +132,7 @@ class TestPostApi:
             {"name": name, "code": code, "sort": 1, "status": 0, "remark": "dbcheck"}
         ).json()["data"]
         try:
-            row = db_utils.query_one(
-                "SELECT name, code, status, deleted + 0 AS deleted FROM system_post WHERE id=%s",
-                (new_id,)
-            )
-            assert row and row["name"] == name and row["code"] == code and row["deleted"] == 0
-            attach_text("岗位数据库记录", str(row))
+            db_utils.assert_db_record("system_post", new_id,
+                                      {"name": name, "code": code}, "岗位数据库记录")
         finally:
             post_client.delete(new_id)

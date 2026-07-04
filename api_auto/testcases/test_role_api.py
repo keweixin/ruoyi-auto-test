@@ -22,6 +22,7 @@ from common.environment_utils import get_assignable_menu_ids
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
+from common.test_data import with_created_entity
 
 
 _ROLE_CASES, _ROLE_IDS = build_parametrize(load_create_cases("role"))
@@ -106,26 +107,20 @@ class TestRoleApi:
     @allure.story("状态")
     @allure.title("ROLE_API_006 禁用角色成功")
     def test_disable_role(self, role_client):
-        rid = self._create_role(role_client)
-        try:
-            role = role_client.get(rid).json()["data"]
+        with with_created_entity(role_client, "role") as ent:
+            role = role_client.get(ent.id).json()["data"]
             role["status"] = 1
-            body = role_client.update(role).json()
-            assert_api_ok(body, "禁用角色")
-        finally:
-            role_client.delete(rid)
+            assert_api_ok(role_client.update(role).json(), "禁用角色")
 
     @allure.story("状态")
     @allure.title("ROLE_API_007 启用角色成功")
     def test_enable_role(self, role_client):
-        rid = self._create_role(role_client)
-        try:
-            role = role_client.get(rid).json()["data"]
+        with with_created_entity(role_client, "role") as ent:
+            role = role_client.get(ent.id).json()["data"]
+            role["status"] = 1
+            role_client.update(role).json()
             role["status"] = 0
-            body = role_client.update(role).json()
-            assert_api_ok(body, "启用角色")
-        finally:
-            role_client.delete(rid)
+            assert_api_ok(role_client.update(role).json(), "启用角色")
 
     @allure.story("权限分配")
     @allure.title("ROLE_API_008 给角色分配菜单权限成功")
@@ -185,12 +180,8 @@ class TestRoleApi:
             {"name": name, "code": code, "sort": 1, "status": 0, "remark": "dbcheck"}
         ).json()["data"]
         try:
-            row = db_utils.query_one(
-                "SELECT name, code, status, deleted + 0 AS deleted FROM system_role WHERE id=%s",
-                (rid,)
-            )
-            assert row and row["name"] == name and row["code"] == code and row["deleted"] == 0
-            attach_text("角色数据库记录", str(row))
+            db_utils.assert_db_record("system_role", rid,
+                                      {"name": name, "code": code}, "角色数据库记录")
         finally:
             role_client.delete(rid)
 

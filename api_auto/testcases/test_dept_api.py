@@ -16,6 +16,7 @@ from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
+from common.test_data import with_created_entity
 
 
 _DEPT_CASES, _DEPT_IDS = build_parametrize(load_create_cases("dept"))
@@ -82,30 +83,21 @@ class TestDeptApi:
     @allure.story("状态")
     @allure.title("DEPT_API_006 禁用部门成功")
     def test_disable_dept(self, dept_client):
-        new_id = dept_client.create(
-            {"name": gen_name("auto_dept"), "parentId": 0, "sort": 1, "status": 0}
-        ).json()["data"]
-        try:
-            body = dept_client.update(
-                {"id": new_id, "name": "x", "parentId": 0, "sort": 1, "status": 1}
-            ).json()
-            assert_api_ok(body, "禁用部门")
-        finally:
-            dept_client.delete(new_id)
+        with with_created_entity(dept_client, "dept") as ent:
+            dept = dept_client.get(ent.id).json()["data"]
+            dept["status"] = 1
+            assert_api_ok(dept_client.update(dept).json(), "禁用部门")
 
     @allure.story("状态")
     @allure.title("DEPT_API_007 启用部门成功")
     def test_enable_dept(self, dept_client):
-        new_id = dept_client.create(
-            {"name": gen_name("auto_dept"), "parentId": 0, "sort": 1, "status": 1}
-        ).json()["data"]
-        try:
-            body = dept_client.update(
-                {"id": new_id, "name": "x", "parentId": 0, "sort": 1, "status": 0}
-            ).json()
-            assert_api_ok(body, "启用部门")
-        finally:
-            dept_client.delete(new_id)
+        with with_created_entity(dept_client, "dept") as ent:
+            # 先禁用，再启用
+            dept = dept_client.get(ent.id).json()["data"]
+            dept["status"] = 1
+            dept_client.update(dept).json()
+            dept["status"] = 0
+            assert_api_ok(dept_client.update(dept).json(), "启用部门")
 
     @allure.story("删除")
     @allure.title("DEPT_API_008 删除部门成功")
@@ -135,11 +127,6 @@ class TestDeptApi:
             {"name": name, "parentId": 0, "sort": 1, "status": 0}
         ).json()["data"]
         try:
-            row = db_utils.query_one(
-                "SELECT name, parent_id, status, deleted + 0 AS deleted FROM system_dept WHERE id=%s",
-                (new_id,)
-            )
-            assert row and row["name"] == name and row["deleted"] == 0
-            attach_text("部门数据库记录", str(row))
+            db_utils.assert_db_record("system_dept", new_id, {"name": name}, "部门数据库记录")
         finally:
             dept_client.delete(new_id)

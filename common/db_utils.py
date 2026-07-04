@@ -77,3 +77,34 @@ def assert_db_field(sql, params, field, expected):
     assert row.get(field) == expected, \
         f"数据库字段 {field} 期望 {expected!r}，实际 {row.get(field)!r}"
     return row
+
+
+def assert_db_record(table, entity_id, fields, label="数据库记录"):
+    """db_check 用例的高层 helper：查记录 + 断言 deleted==0 + 附加到 Allure。
+
+    用法：
+        assert_db_record("system_dept", new_id, {"name": name}, "部门")
+
+    table: 表名（如 system_dept）
+    entity_id: 记录主键 id
+    fields: 期望匹配的字段 {field: expected_value}（不含 deleted，deleted 自动断言为 0）
+    label: Allure 附件名称
+
+    返回查询到的 row（dict）。
+    """
+    field_names = list(fields.keys()) + ["deleted + 0 AS deleted"]
+    sql = f"SELECT {', '.join(field_names)} FROM {table} WHERE id=%s"
+    row = assert_db_exists(sql, (entity_id,))
+    # 断言逻辑删除标记
+    assert row["deleted"] == 0, f"{label} deleted 期望 0，实际 {row['deleted']}"
+    # 断言指定字段
+    for field, expected in fields.items():
+        assert row[field] == expected, \
+            f"{label} 字段 {field} 期望 {expected!r}，实际 {row[field]!r}"
+    # 附加到 Allure
+    try:
+        from common.allure_utils import attach_text
+        attach_text(label, str(row))
+    except Exception:
+        pass
+    return row

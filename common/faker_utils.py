@@ -21,5 +21,5 @@ def fake_remark():
 
 
 def fake_mobile():
-    prefix = fake.random_element(elements=("13", "15", "18"))
-    return prefix + fake.numerify("#########")
+    # 13 开头手机号 RuoYi 校验最稳定（15/18 部分段偶发被拒）
+    return "13" + fake.numerify("#########")
