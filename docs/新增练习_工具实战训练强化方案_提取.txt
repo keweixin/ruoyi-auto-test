@@ -1,0 +1,951 @@
+ruoyi-vue-pro工具实战训练强化方案
+Apifox / Postman / JMeter 性能测试 / Jenkins CI / Fiddler
+面向：初级自动化测试工程师求职原则：工作高频优先、低频够用即可、每个工具覆盖 80% 常用操作
+项目
+说明
+适用项目
+YunaiV / ruoyi-vue-pro
+训练目标
+把工具练成能在项目中实际使用、能截图沉淀、能写进简历、能面试讲清楚
+主线策略
+Apifox 深练；Postman 会迁移与 Newman；JMeter 会压测与分析；Jenkins 会流水线；Fiddler 会抓包定位
+最终产出
+接口集合、压测脚本、Jenkinsfile、报告、抓包分析、README、简历项目描述
+目录
+1. 使用说明与最终目标
+2. Apifox / Postman 是否只学一个
+3. ruoyi-vue-pro 项目准备与接口练习范围
+4. 总体路线图与时间安排
+5. Apifox 强化训练方案
+6. Postman 精简迁移训练方案
+7. JMeter 性能测试强化训练方案
+8. Jenkins CI 强化训练方案
+9. Fiddler 抓包定位强化训练方案
+10. 综合实战与仓库沉淀
+11. 报告模板、问题记录模板与验收清单
+12. 简历写法与面试表达
+13. 参考资料
+提示：本目录是静态目录，主要用于阅读定位；练习时建议按“总体路线图”推进，不要五个工具同时乱练。
+1. 使用说明与最终目标
+这份训练手册不是工具功能罗列，而是围绕 ruoyi-vue-pro 后台系统设计的“项目化练习”。每个工具都按工作频率分配练习强度：高频操作多练，中频操作练到会用，低频操作只做 1-2 个了解。
+1.1 你练完后应该达到的状态
+能力
+合格表现
+项目产出
+接口调试
+能独立处理 baseUrl、tenant-id、Authorization、Body、Query、Path 参数
+Apifox 项目截图、接口用例记录
+接口自动化基础
+能配置环境变量、提取 token、写断言、跑场景
+核心接口冒烟场景、异常场景
+Postman 迁移
+能把 Apifox 思路迁移到 Postman，并用 Newman 命令行运行
+collection、environment、newman-report.html
+性能测试
+能用 JMeter 做登录/查询/业务链路压测，读懂平均响应、95% 响应、TPS、错误率
+jmx、jtl、HTML 报告、性能总结
+CI 集成
+能用 Jenkins Pipeline 拉代码、装依赖、跑测试、归档报告
+Jenkinsfile、构建截图、报告归档截图
+抓包定位
+能用 Fiddler 找到前端真实请求，对比 Header/参数/响应，定位 401、403、500、参数错误
+saz、抓包分析.md、前后端请求对比表
+1.2 练习优先级规则
+优先级
+含义
+练习策略
+P0 高频必会
+上班每天或经常用，面试也常问
+至少做 5-10 个练习，必须形成截图/报告/代码
+P1 中频常用
+项目中会用，但不是每天用
+做 2-4 个练习，能复现即可
+P2 低频了解
+偶尔用，初级岗位不要求深入
+做 1 个练习，知道适用场景即可
+2. Apifox / Postman 是否只学一个
+结论：可以只深学一个。对你当前求职阶段，建议“Apifox 深学 + Postman 中等掌握”。
+工具
+学习深度
+为什么这样分配
+Apifox
+主力深练
+适合国内项目团队，接口文档、调试、Mock、自动化场景一体化；和 ruoyi-vue-pro 的 Swagger / OpenAPI 导入场景匹配度高。
+Postman
+会迁移、会 Runner、会 Newman
+面试常见，公司也常用；重点不是重复深学，而是能把环境变量、token、断言、集合运行迁移过去。
+两者共同点
+必须理解
+环境变量、接口集合、Header、前置/后置脚本、断言、批量运行、报告输出。
+面试表达
+推荐说法
+“我主要用 Apifox 管理接口和场景化调试，同时掌握 Postman 的 Collection、Tests 断言、Runner 和 Newman，所以公司使用 Postman 也能快速迁移。”
+2.1 不建议的学习方式
+不建议 Apifox 和 Postman 都从零深挖高级功能，容易工具堆砌，浪费时间。
+不建议只会点“发送请求”，不会环境变量、token 提取、断言和批量运行。
+不建议简历写“熟练 Postman/Apifox/JMeter/Jenkins/Fiddler”，但没有截图、报告、脚本、项目仓库支撑。
+3. ruoyi-vue-pro 项目准备与接口练习范围
+训练时以本地启动的 ruoyi-vue-pro 后端作为被测系统。若你的本地端口、接口路径、默认账号与文档不一致，一律以你本地 Swagger / Knife4j / Apifox 导入后的实际接口为准。
+准备项
+要求
+验收方式
+后端启动
+启动 MySQL、Redis、后端应用；确认端口可访问
+访问根路径或接口文档，能看到响应
+接口文档
+优先通过 Swagger/OpenAPI 地址导入 Apifox/Postman
+左侧能看到认证、用户、角色、菜单、字典、日志等接口分组
+租户 Header
+多数管理后台接口需要 tenant-id
+登录/查询接口不因租户标识缺失失败
+登录 token
+登录后提取 accessToken，后续接口自动带 Authorization
+不手动复制 token 也能跑用户/角色接口
+测试账号
+建议至少准备管理员账号 + 普通账号
+能分别验证正常权限和无权限场景
+测试数据
+角色 code、用户名、手机号要加时间戳或随机数
+避免重复数据导致用例假失败
+3.1 推荐练习模块
+模块
+适合练什么
+优先级
+登录认证
+tenant-id、token、错误密码、未登录、token 过期
+P0
+用户管理
+分页、筛选、新增、修改、删除、唯一性校验
+P0
+角色管理
+完整 CRUD、roleCode 唯一性、权限相关
+P0
+菜单管理
+树形结构、权限菜单、缓存影响
+P1
+字典管理
+标准 CRUD，适合新手稳定练手
+P0
+操作日志/登录日志
+分页筛选、时间范围、性能压测
+P1
+文件上传
+multipart、大小/类型校验
+P1
+定时任务/配置管理
+查询、启停、权限，了解即可
+P2
+4. 总体路线图与时间安排
+建议按 18-24 天完成第一轮。每天 1.5-2.5 小时即可。第一轮只追求“会用 + 有产出”，第二轮再补报告质量和面试表达。
+阶段
+天数
+主攻内容
+核心产出
+阶段 0
+1 天
+项目启动、接口文档导入、账号和数据准备
+环境检查清单
+阶段 1
+5 天
+Apifox 深练：环境、token、断言、CRUD、场景、异常
+Apifox 场景截图 + 用例记录
+阶段 2
+2 天
+Postman 迁移：Collection、Tests、Runner、Newman
+Postman JSON + Newman 报告
+阶段 3
+3 天
+Fiddler 抓包：真实请求、对比、重放、问题定位
+抓包分析文档 + saz
+阶段 4
+5 天
+JMeter 性能：登录、查询、链路、数据驱动、报告
+jmx + jtl + HTML 报告
+阶段 5
+3 天
+Jenkins CI：pytest/Newman/JMeter 串流水线
+Jenkinsfile + 构建截图
+阶段 6
+2-5 天
+综合整理：README、报告、简历、面试题
+完整 GitHub 项目仓库
+4.1 每日训练闭环
+先确定今天练哪个工具、哪个模块、哪个接口。
+先跑通一个正常请求，再补异常、边界、权限、数据驱动。
+每个练习必须留下一个产出：截图、导出文件、脚本、报告或 Markdown 记录。
+当天最后用 5 分钟写“今天遇到的问题、原因、解决方式、面试能怎么讲”。
+5. Apifox 强化训练方案
+Apifox 是主力工具，练习量最多。目标不是“会发请求”，而是能把接口文档、环境、认证、断言、场景、数据驱动、报告整合成可维护的接口测试资产。
+5.1 Apifox 常用操作覆盖表
+操作
+工作频率
+练习强度
+达标要求
+导入 Swagger/OpenAPI
+高频
+3 个练习
+能导入、分组、更新接口文档
+环境变量
+高频
+5 个练习
+baseUrl/tenantId/token/账号密码不写死
+Header 管理
+高频
+8 个练习
+Authorization 与 tenant-id 自动注入
+GET/POST/PUT/DELETE
+高频
+12 个练习
+用户/角色/字典 CRUD 全覆盖
+断言
+高频
+12 个练习
+状态码、业务 code、字段、数组、响应时间
+后置脚本提取变量
+高频
+8 个练习
+登录提 token、创建后提 id
+测试场景
+高频
+6 个练习
+冒烟、CRUD、异常、权限、分页
+数据驱动
+中高频
+4 个练习
+登录、分页、手机号、roleCode
+Mock
+中低频
+2 个练习
+会模拟成功、空列表即可
+导出/报告
+中频
+3 个练习
+能导出截图/结果，沉淀到仓库
+5.2 Apifox P0 练习：环境、认证、token
+A1 导入接口文档
+项目
+内容
+优先级
+高频
+练习目标
+把 ruoyi-vue-pro 的 Swagger/OpenAPI 导入 Apifox。
+具体操作
+新建项目；通过 URL 导入接口；检查接口分组；接口变更后尝试重新导入/同步。
+验收标准
+能看到认证、用户、角色、菜单、字典、日志等分组；接口地址不丢失。
+产出物
+导入截图、接口分组截图。
+A2 配置 local/test/mock 环境
+项目
+内容
+优先级
+高频
+练习目标
+掌握环境变量，避免地址和 token 写死。
+具体操作
+建立 local、test、mock 三个环境；配置 baseUrl、tenantId、accessToken、refreshToken、username、password。
+验收标准
+所有接口 URL 使用 {{baseUrl}}；Header 使用 {{tenantId}} 和 {{accessToken}}。
+产出物
+环境变量截图。
+A3 登录成功并提取 token
+项目
+内容
+优先级
+高频
+练习目标
+登录后自动保存 accessToken 和 refreshToken。
+具体操作
+运行登录接口；在后置操作中提取 data.accessToken、data.refreshToken；保存到环境变量。
+验收标准
+登录后环境变量自动更新；后续接口无需手动复制 token。
+产出物
+登录响应截图、变量更新截图。
+面试说法
+“我通过后置脚本提取登录 token，后续接口统一使用环境变量注入 Authorization。”
+A4 全局 Header 注入
+项目
+内容
+优先级
+高频
+练习目标
+掌握 tenant-id 和 Authorization 的统一管理。
+具体操作
+设置公共 Header：tenant-id={{tenantId}}，Authorization=Bearer {{accessToken}}。
+验收标准
+获取当前登录用户信息、用户分页、角色分页都能直接成功。
+产出物
+Header 配置截图、三个接口运行截图。
+A5 认证异常四连测
+项目
+内容
+优先级
+高频
+练习目标
+覆盖工作中最常见的 401/认证失败问题。
+具体操作
+分别测试：不传 Authorization、Authorization 少 Bearer、token 乱值、不传 tenant-id。
+验收标准
+每个异常都能记录 code/msg/HTTP 状态码，并能解释原因。
+产出物
+认证异常表格。
+面试说法
+“我会从 Header 是否缺失、Bearer 格式、token 是否过期、tenant-id 是否正确四个方向排查登录问题。”
+5.3 Apifox P0 练习：查询类接口
+练习
+重点参数
+验收标准
+C1 用户分页查询
+pageNo/pageSize/username/mobile/status/createTime
+code=0；list 为数组；total>=0；响应时间<1000ms
+C2 用户分页边界
+pageNo=1/0/-1/999999；pageSize=1/10/100/0/-1
+记录每组参数实际响应，判断校验是否合理
+C3 角色分页查询
+name/code/status/pageNo/pageSize
+筛选条件有效，返回数据结构稳定
+C4 字典类型分页
+name/type/status
+查询正常，空结果不报错
+C5 操作日志分页
+userId/type/result/createTime
+适合后续 JMeter 压测
+C6 登录日志分页
+username/userIp/status/createTime
+能处理时间范围参数
+C7 菜单列表
+无分页，关注树结构字段
+data 是数组，节点包含 name/path/permission 等关键字段
+C8 空结果查询
+不存在的 username/name/code
+返回空列表或 total=0，不应 500
+5.4 Apifox P0 练习：新增、修改、删除
+练习
+请求重点
+验收标准
+D1 新增角色
+name/code/sort/status/remark
+新增成功并提取 roleId
+D2 重复 roleCode
+连续新增相同 code
+第一次成功，第二次失败，记录 msg
+D3 修改角色
+修改 name/status
+查询详情确认字段已变化
+D4 删除角色
+删除 roleId
+删除后查不到或返回数据不存在
+D5 新增用户
+username/nickname/password/mobile/email/deptId/status
+新增成功并提取 userId
+D6 重复手机号
+使用已有 mobile
+唯一性校验失败
+D7 修改用户
+修改 nickname/mobile/status
+查询详情确认变化
+D8 删除用户
+删除 userId
+分页查不到或状态符合预期
+D9 字典类型 CRUD
+name/type/status/remark
+新增、查询、修改、删除完整闭环
+D10 文件上传
+multipart 文件上传
+响应返回文件信息或 URL
+5.5 Apifox P0/P1 练习：场景化自动化
+场景
+链路
+验收标准
+S1 冒烟场景
+登录 → 当前用户 → 用户分页 → 角色分页 → 菜单列表 → 字典分页
+所有接口一键运行通过
+S2 角色 CRUD 场景
+登录 → 新增角色 → 查询 → 详情 → 修改 → 再查 → 删除 → 再查
+roleId 能跨接口传递
+S3 用户 CRUD 场景
+登录 → 新增用户 → 查询 → 修改 → 详情 → 删除
+userId 能跨接口传递
+S4 字典 CRUD 场景
+登录 → 新增类型 → 新增数据 → 查询 → 修改 → 删除数据 → 删除类型
+类型和数据关联正确
+S5 异常认证场景
+错误密码 → 缺 tenant-id → 缺 token → token 格式错
+每个失败都符合预期断言
+S6 分页数据驱动场景
+多个 pageNo/pageSize 组合批量运行
+成功/失败都能按预期判断
+5.6 Apifox 低频够用练习
+L1 Mock 登录成功
+项目
+内容
+优先级
+低频
+练习目标
+知道 Mock 用来在后端未完成或异常时模拟响应。
+具体操作
+Mock 一个登录成功响应，返回 code=0、accessToken、refreshToken。
+验收标准
+前端或接口工具能拿到模拟响应。
+产出物
+Mock 规则截图。
+L2 Mock 用户分页空列表
+项目
+内容
+优先级
+低频
+练习目标
+测试前端空状态页面或接口空数据处理。
+具体操作
+Mock 用户分页接口返回 list=[]、total=0。
+验收标准
+前端页面能显示空状态，不报错。
+产出物
+Mock 响应截图。
+6. Postman 精简迁移训练方案
+Postman 不重复深学，重点掌握“迁移能力”和“CI 能力”：Collection、Environment、Tests、Runner、CSV、Newman。
+6.1 Postman 必会操作覆盖表
+操作
+练习数量
+达标要求
+手动创建/导入接口
+1-2
+能创建登录、用户分页、角色分页接口
+环境变量
+2
+baseUrl、tenantId、accessToken、refreshToken
+Tests 脚本断言
+4
+code、字段、数组、响应时间、失败场景
+Collection Runner
+2
+能一键运行冒烟集合和数据驱动集合
+CSV 数据驱动
+2
+登录数据和分页参数
+Newman 命令行
+3
+能生成 CLI 和 HTML 报告，并接入 Jenkins
+Mock/Monitor
+各 1
+了解即可，不作为主线
+练习
+重点
+验收标准
+P1 创建 ruoyi-local 环境
+baseUrl、tenantId、accessToken、refreshToken
+接口地址全部使用 {{baseUrl}}
+P2 登录接口 Tests 提取 token
+pm.response.json()；pm.environment.set()
+登录后变量自动更新
+P3 用户分页断言
+code=0；list 是数组；total>=0；响应时间<1000ms
+断言全部通过
+P4 错误密码断言
+code != 0；不返回 accessToken
+失败符合预期
+P5 冒烟 Collection
+登录 → 当前用户 → 用户分页 → 角色分页 → 菜单列表
+Runner 一键运行
+P6 CSV 登录数据驱动
+正确账号、错误密码、不存在用户
+每行数据独立判断
+P7 CSV 分页数据驱动
+pageNo/pageSize 多组合
+输出每组执行结果
+P8 Newman CLI 运行
+newman run collection -e env
+命令行输出通过/失败数
+P9 Newman HTML 报告
+--reporters cli,html
+生成 newman-report.html
+P10 Jenkins 中运行 Newman
+在 Jenkinsfile 加 Newman stage
+报告归档成功
+6.2 Postman 常用脚本模板
+// 登录接口 Tests：断言 + 提取 tokenconst json = pm.response.json();pm.test("业务 code 为 0", function () {    pm.expect(json.code).to.eql(0);});pm.test("accessToken 存在", function () {    pm.expect(json.data.accessToken).to.not.be.empty;});pm.environment.set("accessToken", json.data.accessToken);pm.environment.set("refreshToken", json.data.refreshToken);
+# Newman 运行集合并生成 HTML 报告newman run postman/ruoyi-smoke.postman_collection.json   -e  postman/ruoyi-local.postman_environment.json   --reporters cli,html    --reporter-html-export reports/newman-report.html
+7. JMeter 性能测试强化训练方案
+JMeter 是性能测试主力工具之一。你现阶段要重点掌握：线程组、HTTP 请求、Header、JSON 提取 token、CSV 数据驱动、断言、监听器、非 GUI 运行、HTML 报告和性能结论。
+7.1 JMeter 常用操作覆盖表
+操作
+工作频率
+练习强度
+达标要求
+Thread Group
+高频
+5
+能设置并发、Ramp-Up、循环、持续时间
+HTTP Request / Defaults
+高频
+10
+能复用协议、域名、端口，接口只写路径
+Header Manager
+高频
+6
+tenant-id、Content-Type、Authorization 自动带上
+JSON Extractor
+高频
+6
+登录提 token，创建后提 id
+CSV Data Set Config
+高频
+5
+用户、密码、分页参数数据驱动
+Assertion
+高频
+8
+业务 code、字段、响应时间
+Listener
+高频
+6
+调试看 View Results Tree，结论看 Aggregate/Summary
+CLI/非 GUI
+高频
+4
+压测必须用命令行模式
+HTML Report
+高频
+4
+生成 report 目录并能解释图表
+瓶颈分析
+高频
+6
+能解释响应时间、TPS、错误率变化
+分布式压测
+低频
+1
+知道概念和条件即可
+JSR223 脚本
+中频
+2
+会简单生成随机数/时间戳即可
+7.2 JMeter P0 练习：脚本搭建与登录链路
+练习
+重点组件/配置
+验收标准
+J1 最小测试计划
+Test Plan → Thread Group → HTTP Request → View Results Tree
+GET 根路径，确认能打到后端
+J2 HTTP Request Defaults
+协议、Host、Port 放公共配置
+后续请求只写接口路径
+J3 Header Manager
+tenant-id、Content-Type
+登录请求成功
+J4 登录接口调试
+线程数=1，循环=1
+响应有 token
+J5 JSON Extractor 提 token
+$.data.accessToken
+后续接口使用 ${accessToken}
+J6 登录 + 用户分页链路
+登录 → 提 token → 用户分页
+用户分页 code=0
+J7 JSON Assertion
+$.code == 0
+异常请求能被标记失败
+J8 Duration Assertion
+< 1000ms
+超时请求失败
+7.3 JMeter P0 练习：压测模型
+压测脚本
+接口链路
+并发梯度
+重点指标
+login-test.jmx
+登录接口
+10/30/50/100
+平均响应、95% 响应、错误率、验证码/限流影响
+user-query-test.jmx
+登录 → 用户分页
+10/30/50/100
+查询响应、数据库压力、分页参数影响
+role-query-test.jmx
+登录 → 角色分页
+10/30/50/100
+TPS 变化、错误率拐点
+menu-test.jmx
+登录 → 菜单列表
+10/30/50/100
+树结构、权限、缓存影响
+business-flow-test.jmx
+登录 → 当前用户 → 用户分页 → 角色分页 → 菜单列表
+10/30/50
+业务链路总耗时、各接口占比
+7.4 JMeter P0 练习：数据驱动
+# users.csvusername,passwordadmin,正确密码admin,wrong_passwordtest01,123456
+# page_params.csvpageNo,pageSize1,101,202,101,1000,10-1,10
+CSV Data Set Config 中 Variable Names 分别填写 username,password 或 pageNo,pageSize，请求 Body / Query 中使用 ${username}、${password}、${pageNo}、${pageSize}。
+7.5 JMeter P0 练习：结果分析模板
+指标
+怎么看
+面试表达
+Average
+平均响应时间，只能看整体趋势，不能单独代表用户体验
+“我不会只看平均值，还会看 90/95/99 分位。”
+95% Line
+95% 请求在该时间内完成，更接近多数用户体验
+“95% 响应时间超过阈值时，说明已有明显性能风险。”
+Throughput / TPS
+单位时间处理请求数
+“并发升高但 TPS 不再增长，可能到达系统瓶颈。”
+Error %
+错误率
+“压测结论必须同时看响应时间和错误率。”
+Samples
+请求总数，样本太少结论不稳定
+“正式结论前要保证样本量足够。”
+Min/Max
+极值只能辅助判断
+“Max 高可能是偶发抖动，需要结合日志分析。”
+# JMeter 非 GUI 运行并生成 HTML 报告jmeter -n -t jmeter/role-query-test.jmx   -l reports/jmeter/result.jtl   -e  -o reports/jmeter/html
+8. Jenkins CI 强化训练方案
+Jenkins 的目标是把你的接口测试、Newman、JMeter 统一放进流水线。初级岗位不要求复杂平台化，但必须会 Pipeline、参数化构建、报告归档和失败定位。
+8.1 Jenkins 常用操作覆盖表
+操作
+工作频率
+练习强度
+达标要求
+新建 Job
+高频
+3
+自由风格和 Pipeline 都会创建
+拉取 Git 仓库
+高频
+5
+能拉测试仓库，区分被测项目和测试项目
+执行 Shell/Bat
+高频
+8
+pip、pytest、newman、jmeter 都能跑
+Jenkinsfile
+高频
+10
+能写 checkout/install/test/report 阶段
+参数化构建
+高频
+5
+ENV、MARK、BASE_URL 可配置
+报告归档
+高频
+6
+Allure/Newman/JMeter 失败也归档
+定时构建
+中频
+2
+每天自动跑冒烟
+Webhook
+中频
+2
+push 后自动触发
+凭据管理
+中频
+3
+账号密码不写死
+通知
+中频
+2
+邮件/企业微信知道配置思路
+Docker Agent
+低频
+1
+了解容器化执行即可
+8.2 Jenkins P0 练习清单
+练习
+核心操作
+验收标准
+CI1 自由风格任务
+执行 python --version / pip --version / pytest --version
+控制台正常输出
+CI2 拉取测试仓库
+拉取自己的 ruoyi-api-test-practice，而不是只拉被测项目
+Workspace 看到 testcases/api/utils 等目录
+CI3 安装依赖
+pip install -r requirements.txt
+依赖安装成功
+CI4 执行 pytest 冒烟
+pytest -m smoke
+控制台显示通过/失败数
+CI5 生成 Allure 结果
+--alluredir=reports/allure-results
+目录生成并归档
+CI6 Pipeline Job
+使用 Jenkinsfile
+流水线按 stage 执行
+CI7 参数化构建
+ENV/MARK/BASE_URL
+页面可选择 smoke/regression
+CI8 接入 Newman
+newman run collection -e env
+生成 newman-report.html
+CI9 接入 JMeter
+jmeter -n -t xxx.jmx -l xxx.jtl -e -o html
+生成 JMeter HTML 报告
+CI10 报告归档
+archiveArtifacts reports/**
+失败也能下载报告
+CI11 定时构建
+H 22 * * *
+每天晚上自动跑
+CI12 Webhook 触发
+GitHub push → Jenkins
+提交代码自动构建
+8.3 Jenkinsfile 模板
+pipeline {    agent any    parameters {        choice(name: 'ENV', choices: ['local', 'test'], description: '测试环境')        choice(name: 'MARK', choices: ['smoke', 'regression'], description:          '用例级别')        string(name: 'BASE_URL', defaultValue: 'http://127.0.0.1:48080',          description: '后端地址')    }    stages {        stage('Checkout') {            steps { checkout scm }        }        stage('Install Dependencies') {            steps { sh 'pip install -r requirements.txt' }        }        stage('Run Pytest API Tests') {            steps { sh 'pytest -m ${MARK} --base-url=${BASE_URL}              --alluredir=reports/allure-results' }        }        stage('Run Newman Tests') {            steps {                sh '''                newman run postman/ruoyi-smoke.postman_collection.json                         -e postman/ruoyi-local.postman_environment.json                              --reporters cli,html                                    --reporter-html-export reports/newman-report.html                '''            }        }        stage('Run JMeter Basic Test') {            steps {                sh '''                jmeter -n -t jmeter/role-query-test.jmx                   -l                  reports/jmeter/result.jtl                   -e -o                  reports/jmeter/html                '''            }        }    }    post {        always {            archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true        }    }}
+9. Fiddler 抓包定位强化训练方案
+你写的是 fildder，正确工具名是 Fiddler。Fiddler 的核心不是“看热闹”，而是通过真实前端请求定位：到底是前端没传参数、Header 不一致、token 失效、tenant-id 缺失，还是后端接口异常。
+9.1 Fiddler 常用操作覆盖表
+操作
+工作频率
+练习强度
+达标要求
+抓 HTTP/HTTPS 请求
+高频
+8
+能抓登录、分页、新增、修改、删除请求
+查看 Method/URL/Header/Body
+高频
+10
+能完整复述一次请求组成
+查看响应 JSON
+高频
+8
+能判断 code/msg/data
+过滤请求
+高频
+5
+只看 localhost:48080 或指定路径
+对比前端与 Apifox/Postman
+高频
+6
+定位 Header/参数差异
+Replay/Composer 重放
+中高频
+4
+能修改参数重放
+断点修改请求
+中频
+2
+会拦截并改参数
+AutoResponder/Rule Builder
+中低频
+2
+Mock 空列表/错误响应
+导出 SAZ
+中频
+2
+把问题包给开发复现
+手机抓包
+低频
+1
+知道同网段代理和证书信任流程
+9.2 Fiddler P0 练习清单
+练习
+核心操作
+验收标准
+F1 抓登录请求
+记录 URL、Method、tenant-id、Body、响应 token、耗时
+能从抓包还原登录接口
+F2 抓用户分页
+记录 pageNo/pageSize/username/mobile/status/createTime
+能从前端操作反推出查询接口
+F3 抓角色新增
+记录 POST Body 和响应 id
+复制到 Apifox 可重放
+F4 抓角色修改
+对比新增和修改：Method、id、Body 差异
+能解释 POST/PUT 区别
+F5 抓角色删除
+判断 DELETE 是 Path id、Query id 还是 Body id
+按实际接口记录
+F6 定位 401 未登录
+清 token 后访问页面，看 Authorization 是否缺失
+能判断是前端未带 token 还是后端校验失败
+F7 定位 tenant-id 缺失
+对比前端请求和 Apifox 请求 Header
+能解释“前端成功，工具失败”的原因
+F8 定位参数错误
+正常请求 vs 异常请求对比 Query/Body
+能判断前端传参还是后端查询问题
+F9 过滤 localhost 请求
+只看 127.0.0.1:48080 / localhost:48080
+请求列表干净可分析
+F10 导出 SAZ 包
+保存问题请求、响应、耗时
+能发给开发复现
+9.3 Fiddler 问题定位模板
+问题
+优先检查
+常见结论
+401 未登录
+Authorization 是否存在；是否 Bearer 格式；token 是否过期
+认证信息缺失或格式错误
+租户标识错误
+tenant-id 是否存在；值是否正确
+接口工具漏传 Header
+403 无权限
+账号角色、菜单权限、接口权限标识
+当前账号没有权限
+404 接口不存在
+URL、baseUrl、前缀、路径、Method
+环境或接口路径不一致
+500 后端异常
+响应 msg、后端日志、请求参数
+接口内部异常或参数触发后端 bug
+前端有数据，工具无数据
+Cookie、Header、Query、Body、租户、账号是否一致
+请求上下文不一致
+10. 综合实战与仓库沉淀
+所有练习最终必须沉淀成 GitHub 仓库。没有仓库、截图、报告和 README，简历上的工具能力就容易显得虚。
+10.1 最终仓库结构
+ruoyi-api-test-practice/├── README.md├── docs/│   ├── 01-Apifox接口调试记录.md│   ├── 02-Postman-Newman运行记录.md│   ├── 03-JMeter性能测试报告.md│   ├── 04-Jenkins-CI集成记录.md│   ├── 05-Fiddler抓包分析.md│   └── 06-问题清单与总结.md├── apifox/│   ├── screenshots/│   └── export/├── postman/│   ├── ruoyi-smoke.postman_collection.json│   ├── ruoyi-local.postman_environment.json│   └── newman-report.html├── jmeter/│   ├── login-test.jmx│   ├── user-query-test.jmx│   ├── role-query-test.jmx│   ├── menu-test.jmx│   ├── business-flow-test.jmx│   └── reports/├── jenkins/│   └── Jenkinsfile├── fiddler/│   ├── login-capture.saz│   ├── user-query-capture.saz│   └── 抓包问题分析.md└── pytest-api-test/    ├── api/    ├── testcases/    ├── data/    ├── utils/    ├── config/    ├── pytest.ini    └── requirements.txt
+10.2 综合项目验收任务
+任务
+必须完成
+可展示成果
+Apifox
+登录、用户、角色、菜单、字典、日志、文件上传；正常 + 异常 + 场景
+接口场景截图、断言截图、环境变量截图
+Postman/Newman
+冒烟 Collection、环境变量、token 提取、Newman HTML 报告
+collection.json、environment.json、newman-report.html
+JMeter
+登录/用户分页/角色分页/菜单列表/业务链路压测
+jmx、jtl、HTML 报告、性能总结
+Jenkins
+pytest + Newman + JMeter 串联执行并归档报告
+Jenkinsfile、构建截图、报告链接
+Fiddler
+登录、分页、新增、修改、删除、401、tenant-id 缺失、参数错误定位
+saz、抓包分析、请求对比表
+README
+项目背景、环境准备、运行步骤、目录结构、测试范围、报告示例、问题记录
+GitHub 首页可读
+11. 报告模板、问题记录模板与验收清单
+11.1 接口测试用例记录模板
+字段
+填写要求
+用例名称
+例如：用户分页查询-正常分页
+前置条件
+已登录；tenant-id=1；存在测试用户
+请求方法/路径
+GET /admin-api/system/user/page，以实际接口为准
+请求 Header
+tenant-id、Authorization、Content-Type
+请求参数
+Query / Path / Body 分开写
+预期结果
+HTTP 状态、业务 code、关键字段、响应时间
+实际结果
+截图或响应片段
+断言点
+code、data.list、data.total、msg、响应时间
+问题记录
+失败原因、定位过程、解决方式
+11.2 性能测试报告模板
+项目
+内容
+测试接口/链路
+登录 / 用户分页 / 角色分页 / 菜单列表 / 业务链路
+测试目的
+验证接口在指定并发下的响应时间、TPS、错误率
+测试环境
+本地/测试环境；机器配置；数据库；Redis；后端版本
+压测模型
+线程数、Ramp-Up、循环次数、持续时间、思考时间
+关键指标
+Samples、Average、90%、95%、99%、TPS、Error %
+结论
+是否通过；瓶颈从多少并发开始出现
+问题分析
+慢 SQL、连接池、Redis、权限校验、日志写入、服务器资源
+优化建议
+索引、缓存、分页限制、连接池、异步日志、限流策略
+11.3 最终验收清单
+检查项 1
+检查项 2
+检查项 3
+□ Apifox 导入成功
+□ Apifox 环境变量
+□ Apifox token 提取
+□ Apifox 冒烟场景
+□ Apifox CRUD 场景
+□ Apifox 异常场景
+□ Postman 环境变量
+□ Postman Tests
+□ Newman HTML 报告
+□ JMeter 登录压测
+□ JMeter 查询压测
+□ JMeter 业务链路压测
+□ JMeter 非 GUI 运行
+□ JMeter HTML 报告
+□ 性能总结文档
+□ Jenkins Pipeline
+□ Jenkins 参数化
+□ Jenkins 报告归档
+□ Fiddler 登录抓包
+□ Fiddler 参数对比
+□ Fiddler 401 定位
+□ Fiddler SAZ 导出
+□ README 完成
+□ 简历描述完成
+12. 简历写法与面试表达
+12.1 简历项目描述
+ruoyi-vue-pro 接口测试与性能测试实战 ｜ 个人项目技术栈：Apifox / Postman / Newman / JMeter / Jenkins / Fiddler / pytest / Allure· 使用 Apifox 导入 ruoyi-vue-pro Swagger 接口文档，配置 local/test  多环境变量、tenant-id、Authorization，并完成登录、用户、角色、菜单、字典、日志等核心接口调试· 设计登录认证、分页查询、用户 CRUD、角色 CRUD、异常参数、未授权访问等接口测试场景，使用断言校验业务 code、响应结构、关键字段和响应时间· 使用 Postman 维护冒烟测试集合，通过 Tests 脚本提取 accessToken，并使用 Newman 在命令行生成 HTML 测试报告· 使用 JMeter 对登录、用户分页、角色分页、菜单列表等接口进行并发压测，统计平均响应时间、95% 响应时间、TPS、错误率，并输出性能测试总结· 使用 Jenkins Pipeline 集成 pytest、Newman、JMeter 执行流程，实现代码拉取、依赖安装、自动运行、报告归档的 CI  流水线· 使用 Fiddler 抓取前端真实请求，分析  Header、token、tenant-id、请求参数和响应结果，定位未登录、租户标识缺失、参数错误等常见问题
+12.2 面试高频问答
+问题
+回答要点
+Apifox 和 Postman 你怎么取舍？
+主用 Apifox 做接口文档、调试、环境、断言、场景；Postman 掌握 Collection、Tests、Runner、Newman，能快速迁移。
+接口请求前端能成功，工具里失败怎么排查？
+先用 Fiddler 抓前端真实请求，对比 baseUrl、Method、Header、tenant-id、Authorization、Body、Query 参数。
+token 怎么处理？
+登录接口后置脚本提取 accessToken 到环境变量，后续接口统一 Header：Authorization: Bearer {{accessToken}}。
+JMeter 压测为什么不用 GUI？
+GUI 适合调试脚本，正式负载测试用非 GUI 模式减少客户端资源影响，并生成 jtl/HTML 报告。
+性能报告看哪些指标？
+Average、90/95/99 分位、TPS、Error %、Samples，并结合后端日志分析瓶颈。
+Jenkins 在项目里做了什么？
+拉取测试仓库、安装依赖、执行 pytest/Newman/JMeter、归档报告，失败时通过控制台和报告定位。
+Fiddler 有什么用？
+抓真实前端请求，定位 Header/参数/响应差异；能重放请求、修改参数、导出 SAZ 给开发复现。
+你如何保证练习不是工具堆砌？
+每个工具都绑定 ruoyi-vue-pro 的真实接口和产出物：接口集合、压测报告、Jenkinsfile、抓包分析、README。
+13. 参考资料
+以下资料用于确认项目接口调试方向和工具能力边界。实际练习时，以你本地启动后的接口文档和项目代码为准。
+YunaiV / ruoyi-vue-pro GitHub 仓库：https://github.com/YunaiV/ruoyi-vue-pro
+ruoyi-vue-pro 接口文档/Apifox 调试说明：https://api.feixin.app/api-doc/
+Apifox 帮助文档：https://docs.apifox.com/
+Postman Newman 命令行文档：https://learning.postman.com/docs/reference/newman-cli/command-line-integration-with-newman/
+Postman 环境变量文档：https://learning.postman.com/docs/use/send-requests/variables/environment-variables/
+Apache JMeter Getting Started / CLI Mode：https://jmeter.apache.org/usermanual/get-started.html
+Jenkins Pipeline 文档：https://www.jenkins.io/doc/book/pipeline/
+Jenkins Declarative Pipeline Syntax：https://www.jenkins.io/doc/book/pipeline/syntax/
+Telerik Fiddler Classic HTTPS 解密文档：https://www.telerik.com/fiddler/fiddler-classic/documentation/configure-fiddler/decrypthttps
+附录：第一轮练习建议顺序
+顺序
+练习内容
+不要跳过的产出
+1
+Apifox A1-A5：导入、环境、登录、token、认证异常
+环境截图、登录截图、异常表
+2
+Apifox 查询 + CRUD + 场景
+场景运行截图、用例记录
+3
+Postman P1-P10
+collection/environment/newman-report
+4
+Fiddler F1-F10
+抓包分析和 SAZ
+5
+JMeter J1-J20
+jmx/jtl/html/性能总结
+6
+Jenkins CI1-CI12
+Jenkinsfile/构建截图/报告归档
+7
+整理 README 和简历描述
+GitHub 仓库可展示

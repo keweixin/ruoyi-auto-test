@@ -8,11 +8,11 @@
 - 没有报告附件       → 自动把请求/响应附加到 Allure
 - 没有超时/异常处理   → timeout + try
 
-若依原版约定（已实测 Docker 中 RuoYi v3.9.2）：
-- 接口无统一前缀，直接 /login /system/...
-- 登录返回 data.token（不是 accessToken）
-- 鉴权头 Authorization: Bearer <token>，无 tenant-id
-- 统一响应 { code, msg, data/rows }，code==200 成功
+RuoYi-Vue-Pro 约定（已按本地源码与 48080 服务核对）：
+- 管理端统一前缀 /admin-api
+- 登录返回 data.accessToken
+- 鉴权头 Authorization: Bearer <accessToken>，并携带 tenant-id
+- 统一响应 { code, msg, data }，code==0 成功
 """
 import requests
 
@@ -26,22 +26,35 @@ ADMIN_API_PREFIX = "/admin-api"
 class BaseApi:
     """所有 Client 的基类，封装通用 HTTP 请求方法。"""
 
-    def __init__(self, base_url, tenant_id=None):
+    def __init__(self, base_url, tenant_id="1", token_manager=None):
         self.base_url = base_url.rstrip("/")
-        self.tenant_id = str(tenant_id) if tenant_id else None
+        self.api_root = self.base_url if self.base_url.endswith(ADMIN_API_PREFIX) \
+            else self.base_url + ADMIN_API_PREFIX
+        self.tenant_id = str(tenant_id) if tenant_id else "1"
         self.token = None
+        self.token_manager = token_manager
 
     def set_token(self, token):
-        """登录后设置 token，后续请求自动带上。"""
+        """显式设置固定 token，并停止使用构造时传入的 TokenManager。"""
         self.token = token
+        self.token_manager = None
+
+    @staticmethod
+    def _is_unauthorized(response):
+        """兼容 RuoYi 将鉴权失败包装为 HTTP 200 + 业务 code=401 的行为。"""
+        if response.status_code == 401:
+            return True
+        try:
+            return response.json().get("code") == 401
+        except (ValueError, AttributeError):
+            return False
 
     def get_headers(self, extra=None):
-        """生成统一请求头：Authorization（原版无 tenant-id）。"""
-        headers = {}
-        if self.tenant_id:
-            headers["tenant-id"] = self.tenant_id
-        if self.token:
-            headers["Authorization"] = f"Bearer {self.token}"
+        """生成统一请求头：tenant-id + Authorization。"""
+        headers = {"tenant-id": self.tenant_id}
+        token = self.token_manager.get_access_token() if self.token_manager else self.token
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
         if extra:
             headers.update(extra)
         return headers
@@ -49,12 +62,15 @@ class BaseApi:
     def request(self, method, path, **kwargs):
         """统一请求入口：记日志 + Allure 附件。
 
-        path 直接传如 "/login" "/system/dict/type/list"（原版无前缀）。
+        path 传入管理端相对路径，如 "/system/auth/login"。
         kwargs 支持 params= / json= / headers= 等（透传给 requests）。
         """
-        full_path = path
-        url = self.base_url + full_path
-        headers = self.get_headers(kwargs.pop("headers", None))
+        full_path = path if path.startswith("/") else "/" + path
+        if full_path.startswith(ADMIN_API_PREFIX + "/"):
+            full_path = full_path[len(ADMIN_API_PREFIX):]
+        url = self.api_root + full_path
+        extra_headers = kwargs.pop("headers", None)
+        headers = self.get_headers(extra_headers)
 
         params = kwargs.get("params")
         json_body = kwargs.get("json")
@@ -72,6 +88,21 @@ class BaseApi:
             pass
 
         resp = requests.request(method, url, headers=headers, timeout=15, **kwargs)
+        auth_paths = {
+            "/system/auth/login",
+            "/system/auth/refresh-token",
+            "/system/auth/logout",
+        }
+        can_retry_auth = (
+            self.token_manager is not None
+            and full_path not in auth_paths
+            and not (extra_headers and "Authorization" in extra_headers)
+        )
+        if self._is_unauthorized(resp) and can_retry_auth:
+            log.warning("请求 %s 返回 401，刷新认证后重试一次", full_path)
+            self.token_manager.invalidate_access_token()
+            headers = self.get_headers(extra_headers)
+            resp = requests.request(method, url, headers=headers, timeout=15, **kwargs)
         safe_resp_text = mask_body_string(resp.text[:2000])
         log.info("响应 %s -> %s body=%s", full_path, resp.status_code, mask_body_string(resp.text[:500]))
 

@@ -13,49 +13,52 @@ class UserPage(BasePage):
 
     def open_page(self):
         self.open(cfg.web_url + self.URL)
-        self.page.locator(".el-table__row").first.wait_for(state="visible", timeout=10000)
+        self.wait_visible(self.page.locator(".el-table"))
 
     def search_by_username(self, username):
-        self.fill_vue(self.page.get_by_placeholder("请输入用户名称").first, username)
-        self.page.get_by_text("搜索").first.click()
-        self.page.wait_for_load_state("networkidle", timeout=5000)
+        self.page.get_by_placeholder("请输入用户名称").fill(username)
+        self.page.get_by_role("button", name="搜索").click()
 
     def search_by_mobile(self, mobile):
-        self.fill_vue(self.page.get_by_placeholder("请输入手机号码").first, mobile)
-        self.page.get_by_text("搜索").first.click()
-        self.page.wait_for_load_state("networkidle", timeout=5000)
+        self.page.get_by_placeholder("请输入手机号码").fill(mobile)
+        self.page.get_by_role("button", name="搜索").click()
 
     def reset_search(self):
-        self.page.get_by_text("重置").first.click()
+        self.page.get_by_role("button", name="重置").click()
 
     def add(self, username, nickname, mobile):
-        """新增用户（简化版：用户名/昵称/手机号 + 默认部门）。"""
-        self.page.get_by_text("新增").first.click()
-        dialog = self.page.get_by_role("dialog")
-        self.fill_vue(dialog.get_by_placeholder("请输入用户名称").first, username)
-        self.fill_vue(dialog.get_by_placeholder("请输入用户昵称").first, nickname)
-        self.fill_vue(dialog.get_by_placeholder("请输入手机号码").first, mobile)
-        self.fill_vue(dialog.get_by_placeholder("请输入用户密码").first, "Test123456")
-        dialog.get_by_text("确 定").click()
-        self.page.wait_for_load_state("networkidle", timeout=5000)
+        """新增用户（填写用户名/昵称/手机号/密码 + 默认部门）。"""
+        self.page.get_by_role("button", name="新增").click()
+        dialog = self.visible_dialog()
+        self.form_item_select(dialog, "归属部门").click()
+        self.click_tree_option("芋道源码")
+        self.form_item_input(dialog, "用户名称").fill(username)
+        self.form_item_input(dialog, "用户昵称").fill(nickname)
+        self.form_item_input(dialog, "手机号码").fill(mobile)
+        self.form_item_input(dialog, "用户密码").fill("Test123456")
+        self.dialog_submit()
 
     def row_exists(self, keyword):
         return self.table_has_row(keyword)
 
+    def is_enabled(self, keyword):
+        """读取用户行状态开关，返回当前是否启用。"""
+        switch = self.table_row_by_keyword(keyword).get_by_role("switch")
+        return switch.get_attribute("aria-checked") == "true"
+
     def reset_password(self, keyword, new_pwd):
-        """重置某用户密码。原版用 el-message-box 弹窗输入。"""
+        """重置某用户密码。仅允许操作本次 auto 测试用户且要求匹配唯一。"""
         self.safe_auto_keyword(keyword)
         row = self.table_row_by_keyword(keyword)
-        row.get_by_text("重置密码").click()
-        # 重置密码弹窗是 el-message-box
-        msgbox = self.page.locator(".el-message-box")
-        msgbox.wait_for(state="visible", timeout=5000)
-        self.fill_vue(msgbox.get_by_role("textbox"), new_pwd)
-        msgbox.get_by_text("确定").click()
-        self.page.wait_for_load_state("networkidle", timeout=5000)
+        row.get_by_role("button", name="更多").click()
+        self.page.get_by_text("重置密码", exact=True).click()
+        dialog = self.page.locator(".el-message-box")
+        dialog.get_by_role("textbox").fill(new_pwd)
+        self.messagebox_confirm()
 
     def delete_row(self, keyword):
         self.safe_auto_keyword(keyword)
         row = self.table_row_by_keyword(keyword)
-        row.get_by_text("删除").click()
-        self.page.locator(".el-message-box").get_by_text("确定").click()
+        row.get_by_role("button", name="更多").click()
+        self.page.get_by_text("删除", exact=True).click()
+        self.messagebox_confirm()

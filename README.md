@@ -1,23 +1,44 @@
-# RuoYi v3.9.2 后台管理系统接口与 UI 自动化测试项目
+# RuoYi-Vue-Pro 后台管理系统接口与 UI 自动化测试项目
 
-> 基于 Docker 中的 **RuoYi v3.9.2 原版** 后台管理系统，使用 Python + pytest + requests + Playwright 搭建综合自动化测试项目。  
-> 当前真实环境：后端 `http://localhost:8080`，前端 `http://localhost:8081`，数据库 `ry-vue`。  
-> 设计/实现 **152 个测试实例**，最终真实执行结果：**152 passed, 0 failed, 0 skipped**。
+> 基于本地 **RuoYi-Vue-Pro / yudao** 后台管理系统，使用 Python + pytest + requests + Playwright 搭建综合自动化测试项目。
+>
+> 当前真实环境：后端 `http://localhost:48080`（管理端统一前缀 `/admin-api`），前端 `http://localhost:80`，数据库 `ruoyi-vue-pro`。
+>
+> 设计/实现 **155 个测试实例**，已在当前环境分层验证：API 75 passed、UI 60 passed、接口联动/DB 20 passed。
 
 ## 技术栈
 Python · pytest · requests · Playwright · Page Object · YAML · pymysql · Allure · Jenkins · Git · JMeter
 
 ## 项目亮点
-1. **接口与 UI 分层覆盖**：接口验证业务逻辑和数据，UI 验证真实页面操作
-2. **数据库校验**：验证数据真实落库、状态变化和逻辑删除
-3. **Page Object 分层**：页面元素与业务动作封装，测试用例只写流程
-4. **权限场景设计**：角色菜单关系通过接口和数据库双重验证
-5. **失败定位**：失败截图 + Playwright Trace 回放
-6. **工程化**：环境变量配置、日志/Allure 脱敏、Jenkins 报告生成
-7. **性能补充**：已编写 JMeter 登录取 token + 字典分页压测方案和 .jmx 测试计划；未提交真实压测结果
+1. **接口与 UI 分层覆盖**：接口验证业务逻辑和数据，UI 验证真实页面操作。
+2. **数据库校验**：验证数据真实落库、状态变化和逻辑删除。
+3. **Token 生命周期管理**：共享 `TokenManager`，支持过期前刷新、业务码 401 自动恢复并限次重试。
+4. **UI 登录态复用**：`LoginPage` + `AuthStateManager` 统一生成 `storage_state`，失效时自动重新登录。
+5. **环境自清理**：关系表优先清理，主表按本轮唯一前缀兜底；API/UI 签发的 Token 精确登记并在 session 结束时注销。
+6. **Page Object 分层**：页面元素与业务动作封装，UI 测试用例不直接操作裸 `page/locator`。
+7. **权限场景设计**：角色菜单、用户角色关系通过接口和 `system_*` 数据库表双重验证。
+8. **失败定位**：失败截图 + Playwright Trace 回放；成功用例不保存 Trace，避免报告膨胀。
+9. **工程化**：环境变量配置、日志/Allure 脱敏、pytest markers、Jenkinsfile 报告归档设计。
+10. **性能补充**：已编写 JMeter 登录取 `data.accessToken` + 字典类型分页压测方案和 `.jmx` 测试计划；未提交真实压测结果。
+
+## 当前环境
+
+| 项 | 值 |
+|---|---|
+| 被测系统 | RuoYi-Vue-Pro / yudao |
+| 后端 | `http://localhost:48080` |
+| API 前缀 | `/admin-api` |
+| 前端 | `http://localhost:80`，Vue3 + Element Plus + Vite |
+| 登录接口 | `POST /admin-api/system/auth/login` |
+| 成功业务码 | `code == 0` |
+| Token 字段 | `data.accessToken` |
+| Header | `tenant-id: 1`，`Authorization: Bearer <accessToken>` |
+| MySQL | Docker / 本机 `3306` / 库 `ruoyi-vue-pro` |
+| Redis | Docker / 本机 `6379` |
+| 默认账号 | `admin / admin123` |
 
 ## 项目目录
-```
+```text
 ruoyi-auto-test/
 ├── common/            公共工具（配置/日志/DB/断言/脱敏/清理）
 ├── api_auto/          接口自动化（base/clients/testcases）
@@ -34,22 +55,24 @@ ruoyi-auto-test/
 ```
 
 ## 自动化范围
-- **API 接口**：73 条
-- **UI 自动化**：59 条
+- **API 接口**：75 条
+- **UI 自动化**：60 条
 - **接口联动 / DB 校验**：20 条
-- **合计**：152 条测试实例，真实执行 `152 passed`
+- **合计**：155 条测试实例
 
 ## 配置方式（推荐环境变量）
 ```bash
-set BASE_URL=http://localhost:8080
-set WEB_URL=http://localhost:8081
+set BASE_URL=http://localhost:48080
+set WEB_URL=http://localhost:80
+set TENANT_ID=1
+set TENANT_NAME=芋道源码
 set ADMIN_USERNAME=admin
 set ADMIN_PASSWORD=admin123
 set DB_HOST=127.0.0.1
-set DB_PORT=13306
+set DB_PORT=3306
 set DB_USER=root
-set DB_PASSWORD=password
-set DB_NAME=ry-vue
+set DB_PASSWORD=123456
+set DB_NAME=ruoyi-vue-pro
 ```
 
 也可复制 `data/env.example.yaml` 为本地 `data/env.yaml`；`data/env.yaml` 已加入 `.gitignore`，不要提交真实密码。
@@ -59,7 +82,7 @@ set DB_NAME=ry-vue
 pip install -r requirements.txt
 playwright install
 
-# 启动 Docker 后端/前端/MySQL/Redis，并关闭验证码 sys.account.captchaEnabled=false
+# 确认后端 48080、前端 80、MySQL、Redis 已启动，测试环境验证码关闭
 pytest api_auto/testcases          # 只跑接口
 pytest ui_auto/testcases           # 只跑 UI
 pytest integration                 # 只跑联动

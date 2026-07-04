@@ -13,7 +13,7 @@ class MenuPage(BasePage):
 
     def open_page(self):
         self.open(cfg.web_url + self.URL)
-        self.wait_visible(self.page.locator(".el-table"))
+        self.wait_visible(self.page.get_by_text("菜单名称").first)
 
     def search_by_name(self, name):
         self.page.get_by_placeholder("请输入菜单名称").fill(name)
@@ -24,19 +24,36 @@ class MenuPage(BasePage):
 
     def add(self, name, menu_type="菜单"):
         """新增菜单。menu_type: 目录/菜单/按钮。"""
-        self.page.get_by_role("button", name="新增").first.click()
-        dialog = self.page.locator(".el-dialog").filter(visible=True).first
-        dialog.get_by_placeholder("请输入菜单名称").fill(name)
-        # 选择菜单类型（radio）
+        self.page.get_by_role("button", name="新增").click()
+        dialog = self.visible_dialog()
+        self.form_item_input(dialog, "菜单名称").fill(name)
         dialog.get_by_text(menu_type, exact=True).click()
-        dialog.get_by_text("确 定").click()
-        self.page.wait_for_load_state("networkidle", timeout=5000)
+        self.form_item_input(dialog, "显示排序").fill("1")
+        if menu_type in ("目录", "菜单"):
+            self.form_item_input(dialog, "路由地址").fill(name.replace("_", ""))
+        self.dialog_submit()
 
     def row_exists(self, keyword):
         return self.table_has_row(keyword)
 
+    def open_add_dialog(self):
+        return self.open_create_dialog()
+
+    def add_dialog_has_required_fields(self):
+        dialog = self.open_add_dialog()
+        return (
+            dialog.get_by_text("菜单名称").is_visible()
+            and dialog.get_by_text("菜单类型").is_visible()
+        )
+
+    def has_operation(self, operation):
+        return self.page.get_by_role("button", name=operation).count() > 0
+
+    def text_exists(self, text):
+        return self.page.get_by_text(text, exact=True).count() > 0
+
     def delete_row(self, keyword):
         self.safe_auto_keyword(keyword)
         row = self.table_row_by_keyword(keyword)
-        row.get_by_text("删除").click()
-        self.page.locator(".el-message-box").get_by_text("确定").click()
+        row.get_by_role("button", name="删除").click()
+        self.messagebox_confirm()

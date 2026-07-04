@@ -42,6 +42,7 @@ def _build_run_prefix():
 
 RUN_ID = os.getenv("TEST_RUN_ID") or uuid.uuid4().hex
 TEST_RUN_PREFIX = _build_run_prefix()
+TEST_USER_PREFIX = TEST_RUN_PREFIX.replace("_", "")
 
 
 def gen_name(prefix="auto"):
@@ -59,6 +60,11 @@ def gen_name(prefix="auto"):
 def gen_mobile():
     """生成随机 11 位手机号（13 开头）。"""
     return "13" + "".join(random.choice("0123456789") for _ in range(9))
+
+
+def gen_username():
+    """生成只包含字母和数字的用户名，满足管理端账号格式校验。"""
+    return f"{TEST_USER_PREFIX}u{random.randint(100, 999)}"
 
 
 def gen_email():

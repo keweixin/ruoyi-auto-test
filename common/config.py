@@ -26,18 +26,19 @@ class Config:
         def _get(key, yaml_section, yaml_key):
             return os.getenv(key) or yaml_cfg.get(yaml_section, {}).get(yaml_key, "")
 
-        self.base_url = _get("BASE_URL", "env", "base_url") or "http://localhost:8080"
-        self.web_url = _get("WEB_URL", "env", "web_url") or "http://localhost:8081"
-        self.tenant_id = _get("TENANT_ID", "env", "tenant_id") or ""
+        self.base_url = _get("BASE_URL", "env", "base_url") or "http://localhost:48080"
+        self.web_url = _get("WEB_URL", "env", "web_url") or "http://localhost:80"
+        self.tenant_id = _get("TENANT_ID", "env", "tenant_id") or "1"
+        self.tenant_name = _get("TENANT_NAME", "env", "tenant_name") or "芋道源码"
 
         self.admin_user = _get("ADMIN_USERNAME", "admin", "username") or "admin"
         self.admin_pwd = _get("ADMIN_PASSWORD", "admin", "password") or "admin123"
 
         self.db_host = _get("DB_HOST", "db", "host") or "127.0.0.1"
-        self.db_port = int(_get("DB_PORT", "db", "port") or "13306")
+        self.db_port = int(_get("DB_PORT", "db", "port") or "3306")
         self.db_user = _get("DB_USER", "db", "user") or "root"
-        self.db_pwd = _get("DB_PASSWORD", "db", "password") or "password"
-        self.db_name = _get("DB_NAME", "db", "database") or "ry-vue"
+        self.db_pwd = _get("DB_PASSWORD", "db", "password") or "123456"
+        self.db_name = _get("DB_NAME", "db", "database") or "ruoyi-vue-pro"
 
 
 cfg = Config()

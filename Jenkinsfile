@@ -13,10 +13,12 @@ pipeline {
         ADMIN_USERNAME = credentials('ruoyi-admin-username')
         ADMIN_PASSWORD = credentials('ruoyi-admin-password')
         DB_HOST = credentials('ruoyi-db-host')
+        DB_PORT = '3306'
         DB_USER = credentials('ruoyi-db-user')
         DB_PASSWORD = credentials('ruoyi-db-password')
         DB_NAME = credentials('ruoyi-db-name')
         TENANT_ID = '1'
+        TENANT_NAME = '芋道源码'
     }
 
     stages {
@@ -35,6 +37,13 @@ pipeline {
             steps {
                 sh 'pip install -r requirements.txt'
                 sh 'playwright install --with-deps chromium'
+            }
+        }
+
+        stage('静态检查') {
+            steps {
+                sh 'python -m compileall -q api_auto common ui_auto integration conftest.py'
+                sh 'pytest --collect-only -q'
             }
         }
 

@@ -15,38 +15,35 @@ COMMON_RESULT_SCHEMA = {
 
 LOGIN_SCHEMA = {
     "type": "object",
-    "required": ["code", "msg"],
+    "required": ["code", "msg", "data"],
     "properties": {
         **_CODE_MSG_PROPERTIES,
-        # 兼容 RuoYi 原版 data.token 与部分封装返回 token 的两种形态。
-        "token": {"type": "string", "minLength": 10},
         "data": {
             "type": "object",
-            "required": ["token"],
+            "required": ["accessToken"],
             "properties": {
-                "token": {"type": "string", "minLength": 10},
+                "accessToken": {"type": "string", "minLength": 10},
+                "refreshToken": {"type": "string", "minLength": 10},
+                "userId": {"type": "integer"},
+                "expiresTime": {"type": "integer"},
             },
         },
     },
-    "anyOf": [
-        {"required": ["token"]},
-        {"required": ["data"]},
-    ],
 }
 
 GET_INFO_SCHEMA = {
     "type": "object",
-    "required": ["code", "msg", "permissions", "roles", "user"],
+    "required": ["code", "msg", "data"],
     "properties": {
         **_CODE_MSG_PROPERTIES,
-        "permissions": {"type": "array", "items": {"type": "string"}},
-        "roles": {"type": "array", "items": {"type": "string"}},
-        "user": {
+        "data": {
             "type": "object",
-            "required": ["userId", "userName"],
+            "required": ["permissions", "roles", "user", "menus"],
             "properties": {
-                "userId": {"type": "integer"},
-                "userName": {"type": "string", "minLength": 1},
+                "permissions": {"type": "array", "items": {"type": "string"}},
+                "roles": {"type": "array"},
+                "menus": {"type": "array"},
+                "user": {"type": "object"},
             },
         },
     },
@@ -54,11 +51,17 @@ GET_INFO_SCHEMA = {
 
 PAGE_LIST_SCHEMA = {
     "type": "object",
-    "required": ["code", "msg", "rows", "total"],
+    "required": ["code", "msg", "data"],
     "properties": {
         **_CODE_MSG_PROPERTIES,
-        "rows": {"type": "array"},
-        "total": {"type": "integer", "minimum": 0},
+        "data": {
+            "type": "object",
+            "required": ["list", "total"],
+            "properties": {
+                "list": {"type": "array"},
+                "total": {"type": "integer", "minimum": 0},
+            },
+        },
     },
 }
 

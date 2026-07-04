@@ -8,12 +8,11 @@
 """
 import allure
 import pytest
-from urllib.parse import urlparse
-from playwright.sync_api import expect
 
 from common.config import cfg
 from ui_auto.pages.login_page import LoginPage
 from ui_auto.pages.home_page import HomePage
+from ui_auto.auth.auth_state_manager import AuthStateManager
 
 
 @allure.feature("登录模块 UI")
@@ -26,8 +25,7 @@ class TestLoginUi:
         lp.open()
         lp.login_as_admin()
         # 断言进入首页
-        fresh_page.wait_for_url("**/index**")
-        assert "index" in fresh_page.url, "登录后未进入首页"
+        assert HomePage(fresh_page).is_home_page(), "登录后未进入首页"
 
     @allure.title("AUTH_UI_002 错误密码登录失败")
     def test_login_wrong_pwd(self, fresh_page):
@@ -38,24 +36,23 @@ class TestLoginUi:
         toast = lp.get_error_toast()
         assert toast, "未出现错误提示"
         # 仍停留在登录页
-        assert urlparse(fresh_page.url).path == "/login"
+        assert lp.is_login_page()
 
     @allure.title("AUTH_UI_003 用户名为空提示")
     def test_login_empty_username(self, fresh_page):
         lp = LoginPage(fresh_page)
         lp.open()
         lp.login("", cfg.admin_pwd)
-        # 表单校验：应出现必填提示并停留在登录页
-        expect(fresh_page.locator(".el-form-item__error").first).to_be_visible()
-        assert urlparse(fresh_page.url).path == "/login", "空用户名仍登录成功"
+        assert lp.validation_error_count() > 0, "空用户名未显示表单校验状态"
+        assert lp.is_login_page(), "空用户名仍登录成功"
 
     @allure.title("AUTH_UI_004 密码为空提示")
     def test_login_empty_password(self, fresh_page):
         lp = LoginPage(fresh_page)
         lp.open()
         lp.login(cfg.admin_user, "")
-        expect(fresh_page.locator(".el-form-item__error").first).to_be_visible()
-        assert urlparse(fresh_page.url).path == "/login", "空密码仍登录成功"
+        assert lp.validation_error_count() > 0, "空密码未显示表单校验状态"
+        assert lp.is_login_page(), "空密码仍登录成功"
 
     @allure.title("AUTH_UI_005 登录后进入首页")
     def test_login_then_home(self, fresh_page):
@@ -81,16 +78,26 @@ class TestLoginUi:
         lp = LoginPage(fresh_page)
         lp.open()
         lp.login_as_admin()
-        fresh_page.wait_for_url("**/index**", timeout=10000)
+        assert HomePage(fresh_page).is_home_page(timeout=10000)
 
         hp = HomePage(fresh_page)
         hp.logout()
         fresh_page.wait_for_url("**/login**", timeout=8000)
-        assert urlparse(fresh_page.url).path == "/login"
+        assert lp.is_login_page()
 
     @allure.title("AUTH_UI_008 未登录访问首页跳回登录页")
     def test_unauth_redirect(self, fresh_page):
-        fresh_page.goto(cfg.web_url + "/index")
-        # 未登录应被重定向到登录页
-        fresh_page.wait_for_url("**/login**", timeout=8000)
-        assert urlparse(fresh_page.url).path == "/login"
+        lp = LoginPage(fresh_page)
+        lp.open_protected_page()
+        assert lp.is_login_page()
+
+    @allure.title("AUTH_UI_009 storage_state 失效后自动重新登录")
+    def test_expired_storage_state_recovers(self, browser, tmp_path):
+        state_path = tmp_path / "expired-state.json"
+        state_path.write_text("{invalid-json", encoding="utf-8")
+        manager = AuthStateManager(browser, state_path, cfg)
+        context, authenticated_page = manager.new_authenticated_page()
+        try:
+            assert HomePage(authenticated_page).is_home_page(), "失效登录态未自动恢复"
+        finally:
+            context.close()
