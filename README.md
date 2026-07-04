@@ -4,7 +4,7 @@
 >
 > 当前真实环境：后端 `http://localhost:48080`（管理端统一前缀 `/admin-api`），前端 `http://localhost:80`，数据库 `ruoyi-vue-pro`。
 >
-> 设计/实现 **159 个测试实例**，已在当前环境分层验证：API 75 passed、UI 64 passed、接口联动/DB 20 passed。
+> 设计/实现 **205 个测试实例**（193 条业务用例 + 12 条框架单测），已在当前环境分层验证全部通过。
 
 ## 技术栈
 Python · pytest · requests · Playwright · Page Object · YAML · pymysql · Allure · Jenkins · Git · JMeter
@@ -84,10 +84,11 @@ flowchart TD
 - **Common 公共层**：配置读取、日志脱敏、DB 查询、断言工具、数据清理
 
 ## 自动化范围
-- **API 接口**：75 条
-- **UI 自动化**：64 条（含 4 条 REAL 纯 UI 操作用例）
+- **API 接口**：103 条（10 模块：登录/部门/字典/菜单/岗位/角色/用户/日志/个人中心/通知公告）
+- **UI 自动化**：70 条（含 4 条 REAL 纯 UI 操作用例）
 - **接口联动 / DB 校验**：20 条
-- **合计**：159 条测试实例
+- **框架单测**：12 条（BaseApi HTTP 客户端 + common 工具）
+- **合计**：**205** 条测试实例
 
 ## 配置方式（推荐环境变量）
 ```bash

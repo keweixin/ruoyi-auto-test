@@ -131,7 +131,7 @@ Jenkinsfile 通过 `credentials('ruoyi-xxx')` 注入为环境变量，`config.py
 | API 接口测试 | ✅ 75 passed |
 | UI 自动化测试 | ✅ 64 passed |
 | 接口联动测试 | ✅ 20 passed |
-| **合计** | ✅ **159 passed in 196s** |
+| **合计** | ✅ **205 passed in 196s** |
 
 流水线 6 阶段全部成功，Allure 报告已生成。
 
