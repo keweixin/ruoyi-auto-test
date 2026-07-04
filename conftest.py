@@ -28,6 +28,9 @@ from api_auto.clients.user_client import UserClient
 from api_auto.clients.role_client import RoleClient
 from api_auto.clients.menu_client import MenuClient
 from api_auto.clients.permission_client import PermissionClient
+from api_auto.clients.log_client import OperateLogClient, LoginLogClient
+from api_auto.clients.profile_client import ProfileClient
+from api_auto.clients.notice_client import NoticeClient
 from api_auto.auth.token_manager import TokenManager
 from common.token_registry import TOKEN_REGISTRY
 from ui_auto.auth.auth_state_manager import AuthStateManager
@@ -133,6 +136,26 @@ def menu_client(token_manager):
 @pytest.fixture
 def permission_client(token_manager):
     return _client_with_token_manager(PermissionClient, token_manager)
+
+
+@pytest.fixture
+def operate_log_client(token_manager):
+    return _client_with_token_manager(OperateLogClient, token_manager)
+
+
+@pytest.fixture
+def login_log_client(token_manager):
+    return _client_with_token_manager(LoginLogClient, token_manager)
+
+
+@pytest.fixture
+def profile_client(token_manager):
+    return _client_with_token_manager(ProfileClient, token_manager)
+
+
+@pytest.fixture
+def notice_client(token_manager):
+    return _client_with_token_manager(NoticeClient, token_manager)
 
 
 @pytest.fixture(scope="session")
