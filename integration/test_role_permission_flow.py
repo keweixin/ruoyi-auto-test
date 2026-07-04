@@ -10,7 +10,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile, gen_username
 from common.test_data import create_role, create_user, DEFAULT_PASSWORD
@@ -26,8 +26,7 @@ class TestRolePermissionFlow:
         return ent.id, ent.name
 
     def _menu_ids(self, menu_client, size=3):
-        body = menu_client.list_all_simple().json()
-        assert_api_ok(body, "查询可分配菜单")
+        body = assert_response_ok(menu_client.list_all_simple(), "查询可分配菜单")
         ids = [item["id"] for item in body["data"][:size]]
         assert ids, "没有可分配菜单"
         return ids
@@ -36,8 +35,7 @@ class TestRolePermissionFlow:
     def test_api_create_role_db_verify(self, role_client):
         rid, name = self._create_role(role_client)
         try:
-            body = role_client.page({"pageNo": 1, "pageSize": 10, "name": name}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(role_client.page({"pageNo": 1, "pageSize": 10, "name": name}))
             rows = body["data"]["list"]
             assert any(r["id"] == rid and r["name"] == name for r in rows), "接口未查到造的角色"
             row = db_utils.query_one(

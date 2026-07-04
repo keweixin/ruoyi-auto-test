@@ -6,7 +6,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 
@@ -37,8 +37,7 @@ class TestDeptPostApiDbFlow:
         code = gen_name("auto_code")
         post_id = post_client.create({"code": code, "name": name, "sort": 1, "status": 0}).json()["data"]
         try:
-            body = post_client.page({"pageNo": 1, "pageSize": 10, "name": name}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(post_client.page({"pageNo": 1, "pageSize": 10, "name": name}))
             rows = body["data"]["list"]
             assert any(r["id"] == post_id and r["name"] == name for r in rows), "接口未查到造的岗位"
             row = db_utils.query_one(
@@ -57,8 +56,7 @@ class TestDeptPostApiDbFlow:
         new_name = gen_name("auto_edited")
         try:
             assert_api_ok(dept_client.update({"id": dept_id, "name": new_name, "parentId": 0, "sort": 1, "status": 0}).json())
-            body = dept_client.get(dept_id).json()
-            assert_api_ok(body)
+            body = assert_response_ok(dept_client.get(dept_id))
             assert body["data"]["name"] == new_name, "接口查到的名称未更新"
             row = db_utils.query_one("SELECT name FROM system_dept WHERE id=%s", (dept_id,))
             assert row and row["name"] == new_name, "DB 名称未更新"

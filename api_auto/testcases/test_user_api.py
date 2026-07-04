@@ -18,7 +18,7 @@ import pytest
 
 from common.config import cfg
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_json, attach_text
 from common.test_data import valid_role_data
 from common.random_utils import gen_username, gen_mobile
@@ -48,11 +48,9 @@ class TestUserApi:
         uid, _, _ = self._create_user(user_client)
         rid = role_client.create(valid_role_data()).json()["data"]
         try:
-            before = permission_client.list_user_roles(uid).json()
-            assert_api_ok(before, "分配前查询用户角色")
+            before = assert_response_ok(permission_client.list_user_roles(uid), "分配前查询用户角色")
             permission_client.assign_user_role(uid, [rid])
-            after = permission_client.list_user_roles(uid).json()
-            assert_api_ok(after, "分配后查询用户角色")
+            after = assert_response_ok(permission_client.list_user_roles(uid), "分配后查询用户角色")
             attach_json("用户角色响应", after)
             role_ids = set(after["data"])
             assert rid in role_ids
@@ -72,8 +70,7 @@ class TestUserApi:
         payload = build_case_payload("user", case)
         # 重复场景：先创建一条占住 username，再用同 username 再建
         if case["setup"] == "duplicate":
-            first = user_client.create(payload).json()
-            assert_api_ok(first, "前置：第一次创建")
+            first = assert_response_ok(user_client.create(payload), "前置：第一次创建")
             try:
                 body = user_client.create(payload).json()
             finally:
@@ -112,8 +109,7 @@ class TestUserApi:
         # 取创建后的真实手机号
         mobile = user_client.get(uid).json()["data"]["mobile"]
         try:
-            body = user_client.page({"pageNo": 1, "pageSize": 10, "mobile": mobile}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(user_client.page({"pageNo": 1, "pageSize": 10, "mobile": mobile}))
             assert body["data"]["total"] >= 1, "按手机号未查到"
         finally:
             user_client.delete(uid)
@@ -126,8 +122,7 @@ class TestUserApi:
             new_mobile = gen_mobile()
             current = user_client.get(uid).json()["data"]
             current.update({"id": uid, "username": username, "mobile": new_mobile})
-            body = user_client.update(current).json()
-            assert_api_ok(body, "编辑手机号")
+            body = assert_response_ok(user_client.update(current), "编辑手机号")
             # 确认改了
             after = user_client.get(uid).json()["data"]["mobile"]
             assert after == new_mobile
@@ -150,8 +145,7 @@ class TestUserApi:
         uid, username, password = self._create_user(user_client)
         try:
             user_client.update_status(uid, 1)  # 禁用
-            body = AuthClient(cfg.base_url, cfg.tenant_id).login(username, password).json()
-            assert_api_fail(body, "禁用用户登录")
+            body = assert_response_fail(AuthClient(cfg.base_url, cfg.tenant_id).login(username, password), "禁用用户登录")
         finally:
             user_client.delete(uid)
 
@@ -162,8 +156,7 @@ class TestUserApi:
         try:
             user_client.update_status(uid, 1)   # 先禁用
             user_client.update_status(uid, 0)   # 再启用
-            body = AuthClient(cfg.base_url, cfg.tenant_id).login(username, password).json()
-            assert_api_ok(body, "启用用户登录")
+            body = assert_response_ok(AuthClient(cfg.base_url, cfg.tenant_id).login(username, password), "启用用户登录")
         finally:
             user_client.delete(uid)
 
@@ -173,11 +166,9 @@ class TestUserApi:
         uid, username, _ = self._create_user(user_client)
         try:
             new_pwd = DEFAULT_RESET_PASSWORD
-            body = user_client.reset_password(uid, new_pwd).json()
-            assert_api_ok(body, "重置密码")
+            body = assert_response_ok(user_client.reset_password(uid, new_pwd), "重置密码")
             # 用新密码能登录
-            login_body = AuthClient(cfg.base_url, cfg.tenant_id).login(username, new_pwd).json()
-            assert_api_ok(login_body, "新密码登录")
+            login_body = assert_response_ok(AuthClient(cfg.base_url, cfg.tenant_id).login(username, new_pwd), "新密码登录")
         finally:
             user_client.delete(uid)
 
@@ -185,8 +176,7 @@ class TestUserApi:
     @allure.title("USER_API_012 删除测试用户成功")
     def test_delete_user(self, user_client):
         uid, _, _ = self._create_user(user_client)
-        body = user_client.delete(uid).json()
-        assert_api_ok(body, "删除用户")
+        body = assert_response_ok(user_client.delete(uid), "删除用户")
 
     @allure.story("数据库校验")
     @allure.title("USER_API_013 数据库校验用户信息正确")

@@ -5,7 +5,7 @@
 import allure
 import pytest
 
-from common.assert_utils import assert_api_ok, assert_not_found
+from common.assert_utils import assert_api_ok, assert_not_found, assert_response_ok, assert_response_fail
 from common.random_utils import gen_name
 from ui_auto.pages.dict_page import DictPage
 
@@ -17,8 +17,7 @@ class TestDictUi:
     def _create_type(self, dict_client, status=0):
         name = gen_name("auto_dict")
         type_ = gen_name("auto_type")
-        body = dict_client.create_type({"name": name, "type": type_, "status": status}).json()
-        assert_api_ok(body, "API 创建字典类型")
+        body = assert_response_ok(dict_client.create_type({"name": name, "type": type_, "status": status}), "API 创建字典类型")
         return body["data"], name, type_
 
     def _create_data(self, dict_client, type_, status=0):

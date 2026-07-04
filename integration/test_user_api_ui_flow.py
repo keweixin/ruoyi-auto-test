@@ -10,7 +10,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_mobile, gen_username
 from common.test_data import create_user, DEFAULT_RESET_PASSWORD, DEFAULT_PASSWORD
@@ -31,8 +31,7 @@ class TestUserFlow:
     def test_api_create_api_db_verify(self, user_client):
         uid, username, _ = self._create_user(user_client)
         try:
-            body = user_client.page({"pageNo": 1, "pageSize": 10, "username": username}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(user_client.page({"pageNo": 1, "pageSize": 10, "username": username}))
             rows = body["data"]["list"]
             assert any(r["id"] == uid for r in rows), "接口未查到造的用户"
             row = db_utils.query_one(
@@ -48,8 +47,7 @@ class TestUserFlow:
     def test_api_create_page_db_verify(self, user_client):
         uid, username, _ = self._create_user(user_client, nickname="分页用户")
         try:
-            body = user_client.page({"pageNo": 1, "pageSize": 10, "username": username}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(user_client.page({"pageNo": 1, "pageSize": 10, "username": username}))
             assert body["data"]["total"] >= 1, "分页接口未查到造的用户"
             row = db_utils.query_one("SELECT username FROM system_users WHERE id=%s", (uid,))
             assert row and row["username"] == username, "DB 未落库"
@@ -62,8 +60,7 @@ class TestUserFlow:
         uid, username, password = self._create_user(user_client, nickname="禁用测试")
         try:
             assert_api_ok(user_client.change_status(uid, 1).json())
-            body = AuthClient(cfg.base_url, cfg.tenant_id).login(username, password).json()
-            assert_api_fail(body, "禁用用户登录")
+            body = assert_response_fail(AuthClient(cfg.base_url, cfg.tenant_id).login(username, password), "禁用用户登录")
         finally:
             assert_api_ok(user_client.delete(uid).json())
 

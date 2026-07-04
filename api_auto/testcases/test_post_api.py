@@ -11,7 +11,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
@@ -37,8 +37,7 @@ class TestPostApi:
         allure.dynamic.title(f"{case['case_id']} {case['desc']}")
         payload = build_case_payload("post", case)
         if case["setup"] in ("duplicate", "duplicate_code"):
-            first = post_client.create(payload).json()
-            assert_api_ok(first, "前置：第一次创建")
+            first = assert_response_ok(post_client.create(payload), "前置：第一次创建")
             try:
                 if case["setup"] == "duplicate_code":
                     # 同 code 但新 name，触发 code 唯一性校验
@@ -119,8 +118,7 @@ class TestPostApi:
             {"name": gen_name("auto_post"), "code": gen_name("auto_code"),
              "sort": 1, "status": 0}
         ).json()["data"]
-        body = post_client.delete(new_id).json()
-        assert_api_ok(body, "删除岗位")
+        body = assert_response_ok(post_client.delete(new_id), "删除岗位")
 
     @allure.story("数据库校验")
     @allure.title("POST_API_009 数据库校验岗位数据正确")

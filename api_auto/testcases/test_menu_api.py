@@ -9,7 +9,7 @@ import allure
 import pytest
 import os
 
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
 from common.yaml_utils import load_case_list
@@ -69,8 +69,7 @@ class TestMenuApi:
             "parentId": 0, "name": gen_name("auto_menu"),
             "type": 2, "path": gen_name("auto"), "sort": 1, "status": 0
         }
-        body = menu_client.create(data).json()
-        assert_api_ok(body, "新增菜单")
+        body = assert_response_ok(menu_client.create(data), "新增菜单")
         assert body["data"]
         menu_client.delete(body["data"])
 
@@ -116,8 +115,7 @@ class TestMenuApi:
             "parentId": 0, "name": gen_name("auto_menu"),
             "type": 2, "path": gen_name("auto"), "sort": 1, "status": 0
         }).json()["data"]
-        body = menu_client.delete(new_id).json()
-        assert_api_ok(body, "删除菜单")
+        body = assert_response_ok(menu_client.delete(new_id), "删除菜单")
 
     @allure.story("权限分配")
     @allure.title("MENU_API_006 给角色分配菜单后查询成功")
@@ -133,8 +131,7 @@ class TestMenuApi:
         }).json()["data"]
         try:
             permission_client.assign_role_menu(rid, [menu_id])
-            body = permission_client.list_role_menus(rid).json()
-            assert_api_ok(body)
+            body = assert_response_ok(permission_client.list_role_menus(rid))
             assert menu_id in set(body["data"]), "分配的菜单未查到"
         finally:
             permission_client.assign_role_menu(rid, [])  # 解绑

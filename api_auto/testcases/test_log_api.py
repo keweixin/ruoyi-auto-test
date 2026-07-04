@@ -11,7 +11,7 @@
 import allure
 import pytest
 
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_response_ok, assert_response_fail
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 
 
@@ -39,12 +39,10 @@ class TestLogApi:
     def test_operate_log_filter_by_type(self, operate_log_client):
         """操作日志按 type 筛选：返回的列表项 type 与筛选值一致。"""
         # 先查全部，取第一条的 type 作为筛选值
-        all_body = operate_log_client.page({"pageNo": 1, "pageSize": 1}).json()
-        assert_api_ok(all_body)
+        all_body = assert_response_ok(operate_log_client.page({"pageNo": 1, "pageSize": 1}))
         first_type = all_body["data"]["list"][0]["type"]
         # 按 type 筛选
-        body = operate_log_client.page({"pageNo": 1, "pageSize": 5, "type": first_type}).json()
-        assert_api_ok(body)
+        body = assert_response_ok(operate_log_client.page({"pageNo": 1, "pageSize": 5, "type": first_type}))
         for item in body["data"]["list"]:
             assert item["type"] == first_type, f"筛选 type={first_type} 但返回 {item['type']}"
 
@@ -66,8 +64,7 @@ class TestLogApi:
     @allure.title("LOG_API_004 登录日志按用户名筛选成功")
     def test_login_log_filter_by_username(self, login_log_client):
         """登录日志按 username 筛选：返回的列表项 username 含筛选值。"""
-        body = login_log_client.page({"pageNo": 1, "pageSize": 5, "username": "admin"}).json()
-        assert_api_ok(body)
+        body = assert_response_ok(login_log_client.page({"pageNo": 1, "pageSize": 5, "username": "admin"}))
         for item in body["data"]["list"]:
             assert "admin" in item.get("username", ""), \
                 f"筛选 username=admin 但返回 {item.get('username')}"

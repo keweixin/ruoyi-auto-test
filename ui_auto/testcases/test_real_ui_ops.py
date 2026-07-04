@@ -50,8 +50,7 @@ class TestRealUiOps:
         """API 造数 → UI 编辑名称 → 断言表格出现新名称 → API 清理。"""
         name = gen_name("auto_dict_real")
         type_ = gen_name("auto_type_real")
-        body = dict_client.create_type({"name": name, "type": type_, "status": 0}).json()
-        assert_api_ok(body, "API 造字典类型")
+        body = assert_response_ok(dict_client.create_type({"name": name, "type": type_, "status": 0}), "API 造字典类型")
         new_name = gen_name("auto_edited_real")
         try:
             dp = DictPage(page)
@@ -92,8 +91,7 @@ class TestRealUiOps:
         payload = valid_user_data()
         username = payload["username"]
         # API 造用户（新增用户 UI 表单较复杂，造数用 API；状态切换用 UI）
-        body = user_client.create(payload).json()
-        assert_api_ok(body, "API 造用户")
+        body = assert_response_ok(user_client.create(payload), "API 造用户")
         uid = body["data"]
         try:
             up = UserPage(page)

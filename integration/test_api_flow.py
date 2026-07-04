@@ -10,7 +10,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok
+from common.assert_utils import assert_api_ok, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile, gen_username
 from common.test_data import DEFAULT_PASSWORD
@@ -29,8 +29,7 @@ class TestApiFlow:
             {"name": name, "type": type_, "status": 0, "remark": "flow"}
         ).json()["data"]
         try:
-            body = dict_client.page_type({"pageNo": 1, "pageSize": 10, "type": type_}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(dict_client.page_type({"pageNo": 1, "pageSize": 10, "type": type_}))
             rows = body["data"]["list"]
             assert any(r["name"] == name and r["id"] == new_id for r in rows), "接口未查到造的字典"
             row = db_utils.query_one(
@@ -54,8 +53,7 @@ class TestApiFlow:
             "deptId": 100,
         }).json()["data"]
         try:
-            body = user_client.page({"pageNo": 1, "pageSize": 10, "username": username}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(user_client.page({"pageNo": 1, "pageSize": 10, "username": username}))
             rows = body["data"]["list"]
             assert any(r["id"] == uid for r in rows), "接口未查到造的用户"
             row = db_utils.query_one(
@@ -78,8 +76,7 @@ class TestApiFlow:
             "status": 0,
             "remark": "flow",
         }).json()["data"]
-        menu_body = menu_client.list_all_simple().json()
-        assert_api_ok(menu_body, "查询可分配菜单")
+        menu_body = assert_response_ok(menu_client.list_all_simple(), "查询可分配菜单")
         menu_ids = [item["id"] for item in menu_body["data"][:3]]
         assert menu_ids, "没有可分配菜单"
         try:

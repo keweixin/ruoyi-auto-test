@@ -14,7 +14,7 @@ import time
 import os
 
 from common.config import cfg
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from api_auto.clients.auth_client import AuthClient
 from common.schema_utils import assert_schema, LOGIN_SCHEMA, GET_INFO_SCHEMA
 from common.yaml_utils import load_case_list
@@ -79,8 +79,7 @@ class TestAuthApi:
     def test_logout_and_token_invalid(self, logout_token):
         client = AuthClient(cfg.base_url, cfg.tenant_id)
         client.set_token(logout_token)
-        body = client.logout().json()
-        assert_api_ok(body, "退出登录")
+        body = assert_response_ok(client.logout(), "退出登录")
         resp = client.get_info()
         assert resp.status_code == 401 or resp.json().get("code") != 0, \
             "退出后 token 仍有效，逻辑错误"
@@ -98,8 +97,7 @@ class TestAuthApi:
     def test_retry_after_unauthorized(self, auth_client, token_manager):
         token_manager.access_token = "invalid_token_for_retry"
         token_manager.expires_time_ms = int(time.time() * 1000) + 600_000
-        body = auth_client.get_permission_info().json()
-        assert_api_ok(body, "401 后刷新重试")
+        body = assert_response_ok(auth_client.get_permission_info(), "401 后刷新重试")
         assert token_manager.access_token != "invalid_token_for_retry"
 
     @allure.story("fixture")

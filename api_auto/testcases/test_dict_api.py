@@ -13,7 +13,7 @@ import pytest
 import os
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_page_result
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_page_result, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
@@ -40,22 +40,19 @@ class TestDictApi:
     @allure.story("查询")
     @allure.title("DICT_API_016 兼容方法查询字典类型分页")
     def test_list_type_compatibility(self, dict_client):
-        body = dict_client.list_type({"pageNo": 1, "pageSize": 10}).json()
-        assert_api_ok(body, "查询字典类型分页")
+        body = assert_response_ok(dict_client.list_type({"pageNo": 1, "pageSize": 10}), "查询字典类型分页")
         assert_page_result(body)
 
     @allure.story("查询")
     @allure.title("DICT_API_017 查询精简字典类型列表")
     def test_list_type_all(self, dict_client):
-        body = dict_client.list_type_all().json()
-        assert_api_ok(body, "查询精简字典类型列表")
+        body = assert_response_ok(dict_client.list_type_all(), "查询精简字典类型列表")
         assert isinstance(body["data"], list)
 
     @allure.story("查询")
     @allure.title("DICT_API_018 查询字典数据分页")
     def test_list_data_compatibility(self, dict_client):
-        body = dict_client.list_data({"pageNo": 1, "pageSize": 10}).json()
-        assert_api_ok(body, "查询字典数据分页")
+        body = assert_response_ok(dict_client.list_data({"pageNo": 1, "pageSize": 10}), "查询字典数据分页")
         assert_page_result(body)
 
     @allure.story("字典类型 - 新增")
@@ -65,8 +62,7 @@ class TestDictApi:
         name = gen_name("auto_dict")
         type_ = gen_name("auto_type")
         data = {"name": name, "type": type_, "status": 0, "remark": "自动化测试"}
-        body = dict_client.create_type(data).json()
-        assert_api_ok(body, "新增字典类型")
+        body = assert_response_ok(dict_client.create_type(data), "新增字典类型")
         assert body["data"], "未返回新 id"
         # 清理
         dict_client.delete_type(body["data"])
@@ -86,11 +82,9 @@ class TestDictApi:
         """type 重复应失败。"""
         type_ = gen_name("auto_type")
         data = {"name": gen_name("auto_dict"), "type": type_, "status": 0}
-        first = dict_client.create_type(data).json()
-        assert_api_ok(first, "第一次新增")
+        first = assert_response_ok(dict_client.create_type(data), "第一次新增")
         try:
-            dup = dict_client.create_type(data).json()
-            assert_api_fail(dup, "重复新增")
+            dup = assert_response_fail(dict_client.create_type(data), "重复新增")
         finally:
             dict_client.delete_type(first["data"])
 
@@ -187,8 +181,7 @@ class TestDictApi:
         new_id = dict_client.create_type(
             {"name": gen_name("auto_dict"), "type": gen_name("auto_type"), "status": 0}
         ).json()["data"]
-        body = dict_client.delete_type(new_id).json()
-        assert_api_ok(body, "删除")
+        body = assert_response_ok(dict_client.delete_type(new_id), "删除")
 
     @allure.story("字典类型 - 删除")
     @allure.title("DICT_API_010 删除后再次查询不到数据")
@@ -254,8 +247,7 @@ class TestDictApi:
             {"sort": 1, "label": "自动选项", "value": "1", "dictType": type_, "status": 0}
         ).json()["data"]
         try:
-            body = dict_client.delete_data(data_id).json()
-            assert_api_ok(body, "删除字典数据")
+            body = assert_response_ok(dict_client.delete_data(data_id), "删除字典数据")
         finally:
             dict_client.delete_type(type_id)
 

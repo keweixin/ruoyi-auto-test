@@ -9,7 +9,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_not_found
+from common.assert_utils import assert_api_ok, assert_not_found, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 
@@ -24,8 +24,7 @@ class TestDictFlow:
         type_ = gen_name("auto_flow_type")
         dict_id = dict_client.create_type({"name": name, "type": type_, "status": 0, "remark": "flow"}).json()["data"]
         try:
-            body = dict_client.page_type({"pageNo": 1, "pageSize": 10, "type": type_}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(dict_client.page_type({"pageNo": 1, "pageSize": 10, "type": type_}))
             rows = body["data"]["list"]
             assert any(r["name"] == name and r["id"] == dict_id for r in rows), "接口未查到造的字典"
             row = db_utils.query_one(
@@ -43,8 +42,7 @@ class TestDictFlow:
         type_ = gen_name("auto_flow_type")
         dict_id = dict_client.create_type({"name": name, "type": type_, "status": 0}).json()["data"]
         try:
-            body = dict_client.page_type({"pageNo": 1, "pageSize": 10, "name": name}).json()
-            assert_api_ok(body)
+            body = assert_response_ok(dict_client.page_type({"pageNo": 1, "pageSize": 10, "name": name}))
             assert body["data"]["total"] >= 1, "分页接口未查到造的字典"
             row = db_utils.query_one("SELECT name, type FROM system_dict_type WHERE id=%s", (dict_id,))
             assert row and row["name"] == name, "DB 未落库"
@@ -60,8 +58,7 @@ class TestDictFlow:
         new_name = gen_name("auto_edited")
         try:
             assert_api_ok(dict_client.update_type({"id": dict_id, "name": new_name, "type": type_, "status": 0}).json())
-            body = dict_client.get_type(dict_id).json()
-            assert_api_ok(body)
+            body = assert_response_ok(dict_client.get_type(dict_id))
             assert body["data"]["name"] == new_name, "接口查到的名称未更新"
             row = db_utils.query_one("SELECT name FROM system_dict_type WHERE id=%s", (dict_id,))
             assert row and row["name"] == new_name, "DB 名称未更新"

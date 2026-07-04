@@ -11,7 +11,7 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
@@ -36,8 +36,7 @@ class TestDeptApi:
         allure.dynamic.title(f"{case['case_id']} {case['desc']}")
         payload = build_case_payload("dept", case)
         if case["setup"] == "duplicate":
-            first = dept_client.create(payload).json()
-            assert_api_ok(first, "前置：第一次创建")
+            first = assert_response_ok(dept_client.create(payload), "前置：第一次创建")
             try:
                 body = dept_client.create(payload).json()
             finally:
@@ -105,8 +104,7 @@ class TestDeptApi:
         new_id = dept_client.create(
             {"name": gen_name("auto_dept"), "parentId": 0, "sort": 1, "status": 0}
         ).json()["data"]
-        body = dept_client.delete(new_id).json()
-        assert_api_ok(body, "删除部门")
+        body = assert_response_ok(dept_client.delete(new_id), "删除部门")
 
     @allure.story("删除")
     @allure.title("DEPT_API_009 删除后查询不到数据")
