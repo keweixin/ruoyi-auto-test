@@ -124,34 +124,39 @@ Jenkinsfile 通过 `credentials('ruoyi-xxx')` 注入为环境变量，`config.py
 
 ## 六、当前构建状态
 
-### Build #3 结果：部分通过
+### Build #6 结果：全部通过 ✅
 
 | 测试类型 | 结果 |
 |----------|------|
-| API 接口测试 | ✅ **75 passed** |
-| UI 自动化测试 | ❌ 5 failed + 55 errors（导航超时） |
-| 接口联动测试 | ✅ 通过（含在 99 passed 内） |
-| **合计** | 99 passed, 5 failed, 55 errors |
+| API 接口测试 | ✅ 75 passed |
+| UI 自动化测试 | ✅ 64 passed |
+| 接口联动测试 | ✅ 20 passed |
+| **合计** | ✅ **159 passed in 196s** |
 
-### UI 测试失败根因
+流水线 6 阶段全部成功，Allure 报告已生成。
 
-UI 用例的 `page` fixture 依赖 `AuthStateManager.create_state()` 走 `LoginPage` 登录流程，在 Jenkins 的 headless Chromium 会话里 `page.goto` + `wait_for_url` 导航超时（15s）。
+### 之前的 UI 失败问题及修复
 
-**关键验证**：直接在 Jenkins workspace 的 venv 里跑 `page.goto("http://localhost:80")` 是 0.7s 成功的，说明浏览器和网络都没问题。问题在 conftest 的登录态创建链路（`LoginPage.login` + `wait_logged_in` + `wait_for_url`）在 Jenkins 会话下时序异常。
+Build #3 时 UI 测试全部超时失败（55 errors + 5 failed），根因和修复如下：
 
-### 让 UI 也能跑通的方向
+**根因**：Vite dev server 首次编译路由 chunk 较慢，conftest 的登录态创建链路（`LoginPage.wait_logged_in` 的 `wait_for_url`）默认 15s 超时不够。
 
-1. **加 Chromium 启动参数**（最可能有效）：在 conftest 的 `browser` fixture 给 `chromium.launch()` 加：
-   ```python
-   browser = p.chromium.launch(headless=True, args=[
-       "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"
-   ])
-   ```
-2. **延长导航超时**：`page.goto(url, timeout=60000)` + `wait_for_url(..., timeout=30000)`
-3. **改 wait_until**：`page.goto(url, wait_until="domcontentloaded")` 代替默认的 `"load"`（Vite dev server 首屏编译可能超过 15s）
-4. **前端用构建产物**：用 `pnpm build` 后的静态文件代替 dev server，避免首次编译延迟
+**修复**（commit `f56faa4`，用 `CI` 环境变量开关，本地默认不受影响）：
 
-> 这些是测试代码改动，本地跑也会受影响，建议加环境变量开关（如 `JENKINS_ENV=1`）按需启用。
+| 文件 | 改动 |
+|------|------|
+| `conftest.py` | `browser` fixture：CI 下 `chromium.launch` 加 `--no-sandbox` 等 headless 稳定性参数 |
+| `ui_auto/pages/login_page.py` | `wait_logged_in`：CI 下超时 15s → 40s |
+| `ui_auto/auth/auth_state_manager.py` | `new_authenticated_page`：CI 下 `goto` 用 `domcontentloaded` + 30s 超时 |
+| `ui_auto/base/base_page.py` | `open`：CI 下 `goto` 用 `domcontentloaded` + 30s |
+| `Jenkinsfile` | `environment` 加 `CI = '1'` 触发宽松分支 |
+
+**修复要点**：
+1. `wait_until="domcontentloaded"` 代替默认 `"load"`——不等所有资源（字体、图片）加载完，dev server 首编时 `load` 事件会很慢
+2. 超时从 15s 放宽到 30-40s——dev server 首次编译路由 chunk 需要时间
+3. `--no-sandbox` 等 args——headless Chromium 在服务会话下的稳定性
+
+**另一个修复**（commit `55f4889`）：Jenkinsfile 清理阶段的 `rmdir /s /q ... & mkdir ...` 串联命令有时序竞态（rmdir 未完成 mkdir 就执行），导致 `allure-results` 目录丢失，pytest 写 allure 结果时 `FileNotFoundError`。改为每条命令单独执行。
 
 ---
 
