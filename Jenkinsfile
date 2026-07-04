@@ -38,10 +38,13 @@ pipeline {
                 bat 'if exist reports\\allure-report rmdir /s /q reports\\allure-report'
                 bat 'if exist reports\\allure-results rmdir /s /q reports\\allure-results'
                 bat 'if not exist reports mkdir reports'
-                bat 'if not exist reports\\allure-results mkdir reports\\allure-results'
-                bat 'if exist screenshots rmdir /s /q screenshots & mkdir screenshots'
-                bat 'if exist traces rmdir /s /q traces & mkdir traces'
-                bat 'if exist logs rmdir /s /q logs & mkdir logs'
+                bat 'mkdir reports\\allure-results'
+                bat 'if exist screenshots rmdir /s /q screenshots'
+                bat 'mkdir screenshots'
+                bat 'if exist traces rmdir /s /q traces'
+                bat 'mkdir traces'
+                bat 'if exist logs rmdir /s /q logs'
+                bat 'mkdir logs'
             }
         }
 
