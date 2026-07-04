@@ -13,6 +13,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok
 from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile, gen_username
+from common.test_data import create_role, create_user, DEFAULT_PASSWORD
 
 
 @allure.feature("纯接口联动-角色权限")
@@ -20,15 +21,9 @@ from common.random_utils import gen_name, gen_mobile, gen_username
 class TestRolePermissionFlow:
 
     def _create_role(self, role_client):
-        name = gen_name("auto_flow")
-        rid = role_client.create({
-            "name": name,
-            "code": gen_name("auto_key"),
-            "sort": 1,
-            "status": 0,
-            "remark": "flow",
-        }).json()["data"]
-        return rid, name
+        """辅助：创建测试角色，返回 (rid, name)。复用 common.test_data.create_role。"""
+        ent = create_role(role_client)
+        return ent.id, ent.name
 
     def _menu_ids(self, menu_client, size=3):
         body = menu_client.list_all_simple().json()
@@ -105,7 +100,7 @@ class TestRolePermissionFlow:
             uid = user_client.create({
                 "username": username,
                 "nickname": "权限测试",
-                "password": "Test123456",
+                "password": DEFAULT_PASSWORD,
                 "mobile": gen_mobile(),
                 "deptId": 100,
             }).json()["data"]

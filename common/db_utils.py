@@ -11,8 +11,17 @@ from common.logger import log
 
 
 def _conn():
-    """建立数据库连接。"""
-    return pymysql.connect(
+    """建立数据库连接（内部使用，外部请用 get_connection）。"""
+    return get_connection()
+
+
+def get_connection(autocommit=False):
+    """建立数据库连接，返回 pymysql.Connection。
+
+    autocommit=True 时自动提交（适合单条写操作）；
+    autocommit=False 时需手动 commit/rollback（适合事务性批量操作）。
+    """
+    conn = pymysql.connect(
         host=cfg.db_host,
         port=cfg.db_port,
         user=cfg.db_user,
@@ -20,7 +29,9 @@ def _conn():
         database=cfg.db_name,
         charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor,
+        autocommit=autocommit,
     )
+    return conn
 
 
 def query_one(sql, params=None):

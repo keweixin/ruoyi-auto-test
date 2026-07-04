@@ -14,17 +14,6 @@ def get_root_dept_id():
     return row["id"]
 
 
-@lru_cache(maxsize=None)
-def get_admin_role_id():
-    row = db_utils.query_one(
-        "SELECT id FROM system_role WHERE deleted=0 AND (code='super_admin' OR name='超级管理员') "
-        "ORDER BY id LIMIT 1"
-    )
-    if not row:
-        raise RuntimeError("测试环境缺少超级管理员角色")
-    return row["id"]
-
-
 def get_assignable_menu_ids(count=3):
     rows = db_utils.query_all(
         "SELECT id FROM system_menu WHERE deleted=0 AND status=0 AND type IN (1, 2) "

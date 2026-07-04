@@ -24,7 +24,7 @@ from common.test_data import valid_role_data
 from common.random_utils import gen_username, gen_mobile
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
-from common.test_data import valid_user_data
+from common.test_data import valid_user_data, create_user, DEFAULT_RESET_PASSWORD
 from api_auto.clients.auth_client import AuthClient
 
 
@@ -36,14 +36,9 @@ _USER_CASES, _USER_IDS = build_parametrize(load_create_cases("user"))
 class TestUserApi:
 
     def _create_user(self, user_client):
-        """辅助：创建一个测试用户，返回 (user_id, username, password)。"""
-        username = gen_username()
-        password = "Test123456"
-        body = user_client.create(valid_user_data(
-            username=username, password=password, mobile=gen_mobile()
-        )).json()
-        assert_api_ok(body, "创建用户")
-        return body["data"], username, password
+        """辅助：创建一个测试用户，返回 (user_id, username, password)。复用 common.test_data.create_user。"""
+        ent = create_user(user_client)
+        return ent.id, ent.name, ent.extra["password"]
 
     @allure.story("角色分配")
     @allure.title("USER_API_014 分配角色前后查询用户角色")
@@ -177,7 +172,7 @@ class TestUserApi:
     def test_reset_password(self, user_client):
         uid, username, _ = self._create_user(user_client)
         try:
-            new_pwd = "New123456"
+            new_pwd = DEFAULT_RESET_PASSWORD
             body = user_client.reset_password(uid, new_pwd).json()
             assert_api_ok(body, "重置密码")
             # 用新密码能登录

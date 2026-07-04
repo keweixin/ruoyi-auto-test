@@ -13,6 +13,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok
 from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile, gen_username
+from common.test_data import DEFAULT_PASSWORD
 
 
 @allure.feature("纯接口联动")
@@ -48,7 +49,7 @@ class TestApiFlow:
         uid = user_client.create({
             "username": username,
             "nickname": "联动用户",
-            "password": "Test123456",
+            "password": DEFAULT_PASSWORD,
             "mobile": gen_mobile(),
             "deptId": 100,
         }).json()["data"]

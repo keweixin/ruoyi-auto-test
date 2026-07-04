@@ -3,10 +3,9 @@
 清理范围严格限定为本轮运行前缀 TEST_RUN_PREFIX，避免并发运行时清理其它轮次 auto 数据。
 优化：一次数据库连接、一个事务执行全部清理 SQL，避免每条 SQL 建立连接。
 """
-from common.config import cfg
+from common.db_utils import get_connection
 from common.logger import log
 from common.random_utils import TEST_RUN_PREFIX, TEST_USER_PREFIX
-import pymysql
 
 
 def _like():
@@ -42,12 +41,7 @@ def cleanup_auto_data():
         ("UPDATE system_dept SET deleted=1 WHERE name LIKE %s", (prefix,)),
         ("UPDATE system_post SET deleted=1 WHERE name LIKE %s OR code LIKE %s", (prefix, prefix)),
     ]
-    conn = pymysql.connect(
-        host=cfg.db_host, port=cfg.db_port, user=cfg.db_user,
-        password=cfg.db_pwd, database=cfg.db_name,
-        charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor,
-        autocommit=False,
-    )
+    conn = get_connection(autocommit=False)
     try:
         affected_total = 0
         with conn.cursor() as cur:

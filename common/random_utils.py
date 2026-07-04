@@ -40,7 +40,6 @@ def _build_run_prefix():
     return f"auto_{worker}_{pid}_{unique}"
 
 
-RUN_ID = os.getenv("TEST_RUN_ID") or uuid.uuid4().hex
 TEST_RUN_PREFIX = _build_run_prefix()
 TEST_USER_PREFIX = TEST_RUN_PREFIX.replace("_", "")
 

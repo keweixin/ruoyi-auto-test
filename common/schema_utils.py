@@ -7,12 +7,6 @@ _CODE_MSG_PROPERTIES = {
     "msg": {"type": "string"},
 }
 
-COMMON_RESULT_SCHEMA = {
-    "type": "object",
-    "required": ["code", "msg"],
-    "properties": _CODE_MSG_PROPERTIES,
-}
-
 LOGIN_SCHEMA = {
     "type": "object",
     "required": ["code", "msg", "data"],

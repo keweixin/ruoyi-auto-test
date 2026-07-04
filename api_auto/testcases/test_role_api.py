@@ -22,7 +22,7 @@ from common.environment_utils import get_assignable_menu_ids
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
-from common.test_data import with_created_entity
+from common.test_data import with_created_entity, create_role
 
 
 _ROLE_CASES, _ROLE_IDS = build_parametrize(load_create_cases("role"))
@@ -33,16 +33,8 @@ _ROLE_CASES, _ROLE_IDS = build_parametrize(load_create_cases("role"))
 class TestRoleApi:
 
     def _create_role(self, role_client):
-        """辅助：创建测试角色，返回 role_id。"""
-        body = role_client.create({
-            "name": gen_name("auto_role"),
-            "code": gen_name("auto_role_code"),
-            "sort": 1,
-            "status": 0,
-            "remark": "auto",
-        }).json()
-        assert_api_ok(body, "创建角色")
-        return body["data"]
+        """辅助：创建测试角色，返回 role_id。复用 common.test_data.create_role。"""
+        return create_role(role_client).id
 
     @allure.story("新增")
     @pytest.mark.parametrize("case", _ROLE_CASES, ids=_ROLE_IDS)

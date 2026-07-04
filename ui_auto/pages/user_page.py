@@ -3,6 +3,7 @@
 特点：含部门树、角色多选、状态开关、重置密码弹窗。
 """
 from ui_auto.base.base_page import BasePage
+from common.test_data import DEFAULT_PASSWORD
 
 
 class UserPage(BasePage):
@@ -27,7 +28,7 @@ class UserPage(BasePage):
         self.form_item_input(dialog, "用户名称").fill(username)
         self.form_item_input(dialog, "用户昵称").fill(nickname)
         self.form_item_input(dialog, "手机号码").fill(mobile)
-        self.form_item_input(dialog, "用户密码").fill("Test123456")
+        self.form_item_input(dialog, "用户密码").fill(DEFAULT_PASSWORD)
         self.dialog_submit()
 
     def is_enabled(self, keyword):

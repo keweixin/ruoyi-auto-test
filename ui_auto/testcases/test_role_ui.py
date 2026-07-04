@@ -7,6 +7,7 @@ import pytest
 
 from common.assert_utils import assert_api_ok
 from common.random_utils import gen_name
+from common.test_data import create_role
 from ui_auto.pages.role_page import RolePage
 
 
@@ -15,11 +16,9 @@ from ui_auto.pages.role_page import RolePage
 class TestRoleUi:
 
     def _create_role(self, role_client, status=0):
-        name = gen_name("auto_role")
-        code = gen_name("auto_code")
-        body = role_client.create({"name": name, "code": code, "sort": 1, "status": status}).json()
-        assert_api_ok(body, "API 创建角色")
-        return body["data"], name, code
+        """辅助：创建测试角色，返回 (role_id, name, code)。复用 common.test_data.create_role。"""
+        ent = create_role(role_client, status=status)
+        return ent.id, ent.name, ent.code
 
     @allure.title("ROLE_UI_001 进入角色管理页面成功")
     def test_open_role_page(self, page):

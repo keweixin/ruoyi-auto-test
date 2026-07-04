@@ -6,8 +6,7 @@ import allure
 import pytest
 
 from common.assert_utils import assert_api_ok
-from common.random_utils import gen_mobile, gen_username
-from common.test_data import valid_user_data
+from common.test_data import create_user, DEFAULT_RESET_PASSWORD
 from ui_auto.pages.user_page import UserPage
 
 
@@ -16,16 +15,11 @@ from ui_auto.pages.user_page import UserPage
 class TestUserUi:
 
     def _create_user(self, user_client, status=0):
-        username = gen_username()
-        mobile = gen_mobile()
-        body = user_client.create(valid_user_data(
-            username=username, password="Test123456", mobile=mobile
-        )).json()
-        assert_api_ok(body, "API 创建用户")
-        uid = body["data"]
+        """辅助：创建测试用户，返回 (uid, username, mobile)。复用 common.test_data.create_user。"""
+        ent = create_user(user_client)
         if status != 0:
-            assert_api_ok(user_client.update_status(uid, status).json())
-        return uid, username, mobile
+            assert_api_ok(user_client.update_status(ent.id, status).json())
+        return ent.id, ent.name, ent.extra["mobile"]
 
     @allure.title("USER_UI_001 进入用户管理页面成功")
     def test_open_user_page(self, page):
@@ -119,7 +113,7 @@ class TestUserUi:
             up = UserPage(page)
             up.open_page()
             up.search_by_username(username)
-            up.reset_password(username, "New123456")
+            up.reset_password(username, DEFAULT_RESET_PASSWORD)
             up.expect_toast("成功")
         finally:
             user_client.delete(uid)

@@ -13,6 +13,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_mobile, gen_username
+from common.test_data import create_user, DEFAULT_RESET_PASSWORD, DEFAULT_PASSWORD
 from api_auto.clients.auth_client import AuthClient
 from common.config import cfg
 
@@ -21,16 +22,10 @@ from common.config import cfg
 @pytest.mark.flow
 class TestUserFlow:
 
-    def _create_user(self, user_client, nickname="联动用户", password="Test123456"):
-        username = gen_username()
-        uid = user_client.create({
-            "username": username,
-            "nickname": nickname,
-            "password": password,
-            "mobile": gen_mobile(),
-            "deptId": 100,
-        }).json()["data"]
-        return uid, username, password
+    def _create_user(self, user_client, nickname="联动用户", password=DEFAULT_PASSWORD):
+        """辅助：创建测试用户，返回 (uid, username, password)。复用 common.test_data.create_user。"""
+        ent = create_user(user_client, nickname=nickname, password=password)
+        return ent.id, ent.name, ent.extra["password"]
 
     @allure.title("USER_FLOW_001 接口创建用户 → 接口查询 → DB 校验 → 清理")
     def test_api_create_api_db_verify(self, user_client):
@@ -88,7 +83,7 @@ class TestUserFlow:
         uid, username, _ = self._create_user(user_client, nickname="重置测试")
         try:
             old = db_utils.query_one("SELECT password FROM system_users WHERE id=%s", (uid,))
-            assert_api_ok(user_client.reset_password(uid, "New123456").json())
+            assert_api_ok(user_client.reset_password(uid, DEFAULT_RESET_PASSWORD).json())
             new = db_utils.query_one("SELECT password FROM system_users WHERE id=%s", (uid,))
             assert new and new["password"] and new["password"] != old["password"], "密码未更新"
         finally:

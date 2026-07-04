@@ -7,6 +7,7 @@ import pytest
 
 from common.assert_utils import assert_api_ok
 from common.random_utils import gen_name
+from common.test_data import create_dept
 from ui_auto.pages.dept_page import DeptPage
 
 
@@ -15,10 +16,9 @@ from ui_auto.pages.dept_page import DeptPage
 class TestDeptUi:
 
     def _create_dept(self, dept_client, status=0):
-        name = gen_name("auto_dept")
-        body = dept_client.create({"name": name, "parentId": 0, "sort": 1, "status": status}).json()
-        assert_api_ok(body, "API 创建部门")
-        return body["data"], name
+        """辅助：创建测试部门，返回 (dept_id, name)。复用 common.test_data.create_dept。"""
+        ent = create_dept(dept_client, status=status)
+        return ent.id, ent.name
 
     @allure.title("DEPT_UI_001 进入部门管理页面成功")
     def test_open_dept_page(self, page):
