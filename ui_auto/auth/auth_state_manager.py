@@ -49,6 +49,9 @@ class AuthStateManager:
 
     def new_authenticated_page(self):
         """创建已登录 Context/Page；快照失效时重新生成并重试一次。"""
+        import os
+        # CI（Vite dev server 首次编译较慢）下放宽超时
+        nav_timeout = 30000 if os.getenv("CI") else 15000
         for attempt in range(2):
             try:
                 context = self.browser.new_context(storage_state=self.ensure_state())
@@ -59,10 +62,11 @@ class AuthStateManager:
                     continue
                 raise
             page = context.new_page()
-            page.goto(self.config.web_url + "/index")
+            # domcontentloaded 比 load 更早触发，避免 dev server 首编时长时间等 load 事件
+            page.goto(self.config.web_url + "/index", wait_until="domcontentloaded", timeout=nav_timeout)
             page.wait_for_url(
                 lambda url: urlparse(str(url)).path in ("/", "/index", "/login"),
-                timeout=15000,
+                timeout=nav_timeout,
             )
             if urlparse(page.url).path != "/login":
                 return context, page

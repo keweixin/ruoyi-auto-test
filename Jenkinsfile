@@ -10,6 +10,9 @@ pipeline {
         // Windows 本机环境：测试项目与被测系统(后端/前端/MySQL/Redis)都在本机
         PYTHON         = '.venv\\Scripts\\python.exe'
         ALLURE_BIN     = 'E:\\allure-2.37.0\\allure-2.37.0\\bin\\allure.bat'
+        // CI 标志：触发 conftest/login_page/auth_state_manager 的 CI 宽松超时分支
+        // （Vite dev server 首次编译路由 chunk 较慢，默认 15s 会超时）
+        CI             = '1'
 
         // 通过 credentials 注入测试环境配置（config.py 优先读环境变量）
         BASE_URL       = credentials('ruoyi-base-url')

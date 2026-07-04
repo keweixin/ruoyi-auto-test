@@ -63,8 +63,15 @@ class LoginPage(BasePage):
         self.login(cfg.admin_user, cfg.admin_pwd)
         self.wait_logged_in()
 
-    def wait_logged_in(self, timeout=15000):
-        """严格等待登录路由完成，避免 redirect=/index 造成假通过。"""
+    def wait_logged_in(self, timeout=None):
+        """严格等待登录路由完成，避免 redirect=/index 造成假通过。
+
+        CI 环境（Vite dev server 首次编译首页 chunk 较慢）默认给 40s，
+        本地默认 15s。
+        """
+        import os
+        if timeout is None:
+            timeout = 40000 if os.getenv("CI") else 15000
         self.page.wait_for_url(
             lambda url: urlparse(str(url)).path in ("/", "/index"),
             timeout=timeout,

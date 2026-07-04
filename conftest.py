@@ -145,7 +145,16 @@ def playwright_instance():
 def browser(playwright_instance):
     if not _web_ready():
         pytest.skip("前端未启动，跳过 UI 用例")
-    browser = playwright_instance.chromium.launch(headless=True)
+    # CI（Jenkins 等）环境下补 headless 稳定性参数；本地保持默认
+    launch_kwargs = {"headless": True}
+    if os.getenv("CI"):
+        launch_kwargs["args"] = [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+        ]
+    browser = playwright_instance.chromium.launch(**launch_kwargs)
     yield browser
     browser.close()
 

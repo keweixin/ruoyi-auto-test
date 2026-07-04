@@ -14,7 +14,12 @@ class BasePage:
 
     def open(self, url):
         log.info("打开页面: %s", url)
-        self.page.goto(url)
+        import os
+        if os.getenv("CI"):
+            # CI 下 Vite dev server 首次编译路由 chunk 较慢，用 domcontentloaded 避免等 load
+            self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        else:
+            self.page.goto(url)
 
     def click(self, locator):
         locator.click()
