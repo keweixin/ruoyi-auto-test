@@ -1,0 +1,30 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-7.4.4, pluggy-1.6.0
+rootdir: E:\ruoyi\test\ruoyi-auto-test
+configfile: pytest.ini
+testpaths: api_auto/testcases, ui_auto/testcases, integration
+plugins: allure-pytest-2.15.3, anyio-4.14.1, base-url-2.1.0, playwright-0.8.0, xdist-3.5.0
+collected 159 items
+
+api_auto\testcases\test_auth_api.py ..........                           [  6%]
+api_auto\testcases\test_dept_api.py ..........                           [ 12%]
+api_auto\testcases\test_dict_api.py ...............                      [ 22%]
+api_auto\testcases\test_menu_api.py ......                               [ 25%]
+api_auto\testcases\test_post_api.py .........                            [ 31%]
+api_auto\testcases\test_role_api.py ............                         [ 38%]
+api_auto\testcases\test_user_api.py .............                        [ 47%]
+ui_auto\testcases\test_dept_ui.py .......                                [ 51%]
+ui_auto\testcases\test_dict_ui.py .............                          [ 59%]
+ui_auto\testcases\test_login_ui.py .........                             [ 65%]
+ui_auto\testcases\test_menu_ui.py ......                                 [ 69%]
+ui_auto\testcases\test_post_ui.py .......                                [ 73%]
+ui_auto\testcases\test_real_ui_ops.py ....                               [ 76%]
+ui_auto\testcases\test_role_ui.py ........                               [ 81%]
+ui_auto\testcases\test_user_ui.py ..........                             [ 87%]
+integration\test_api_flow.py ...                                         [ 89%]
+integration\test_dept_ui_api_db_flow.py ....                             [ 91%]
+integration\test_dict_api_ui_flow.py ....                                [ 94%]
+integration\test_role_permission_flow.py ....                            [ 96%]
+integration\test_user_api_ui_flow.py .....                               [100%]
+
+======================= 159 passed in 191.80s (0:03:11) =======================

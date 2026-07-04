@@ -46,6 +46,18 @@ class UserPage(BasePage):
         switch = self.table_row_by_keyword(keyword).get_by_role("switch")
         return switch.get_attribute("aria-checked") == "true"
 
+    def toggle_status(self, keyword):
+        """点击状态开关切换用户启用/禁用状态。
+
+        Element Plus 的 el-switch 把 role=switch 放在内部隐藏的 input 上，
+        Playwright 无法点击它；真正可点击的是外层 .el-switch 容器（onClick 绑定在此）。
+        状态切换会弹出二次确认框，由调用方负责确认。
+        """
+        self.safe_auto_keyword(keyword)
+        switch = self.table_row_by_keyword(keyword).locator(".el-switch").first
+        switch.scroll_into_view_if_needed()
+        switch.click()
+
     def reset_password(self, keyword, new_pwd):
         """重置某用户密码。仅允许操作本次 auto 测试用户且要求匹配唯一。"""
         self.safe_auto_keyword(keyword)

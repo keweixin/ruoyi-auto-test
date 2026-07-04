@@ -260,8 +260,6 @@ class TestDictApi:
         type_ = gen_name("auto_type")
         type_id = dict_client.create_type(
             {"name": gen_name("auto_dict"), "type": type_, "status": 0}
-        ).json["data"] if False else dict_client.create_type(
-            {"name": gen_name("auto_dict"), "type": type_, "status": 0}
         ).json()["data"]
         data_id = dict_client.create_data(
             {"sort": 1, "label": "db项", "value": "9", "dictType": type_, "status": 0}

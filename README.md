@@ -4,7 +4,7 @@
 >
 > 当前真实环境：后端 `http://localhost:48080`（管理端统一前缀 `/admin-api`），前端 `http://localhost:80`，数据库 `ruoyi-vue-pro`。
 >
-> 设计/实现 **155 个测试实例**，已在当前环境分层验证：API 75 passed、UI 60 passed、接口联动/DB 20 passed。
+> 设计/实现 **159 个测试实例**，已在当前环境分层验证：API 75 passed、UI 64 passed、接口联动/DB 20 passed。
 
 ## 技术栈
 Python · pytest · requests · Playwright · Page Object · YAML · pymysql · Allure · Jenkins · Git · JMeter
@@ -54,11 +54,40 @@ ruoyi-auto-test/
 ├── pytest.ini  requirements.txt  Jenkinsfile  conftest.py
 ```
 
+## 项目架构图
+
+```mermaid
+flowchart TD
+    A["Testcases 测试用例层<br/>api_auto / ui_auto / integration"] --> B["Clients / Pages 业务封装层<br/>接口客户端 / 页面对象"]
+    B --> C["BaseApi / BasePage 基础封装层<br/>请求封装 / 浏览器操作封装"]
+    C --> D["Common 公共能力层<br/>Config / Logger / DB / Assert / Cleanup"]
+    D --> E["配置与基础设施<br/>env.yaml / 环境变量 / TokenManager / AuthStateManager"]
+
+    A --> F["Allure 报告<br/>步骤/截图/数据/Trace"]
+    A --> G["Jenkins Pipeline<br/>Jenkinsfile"]
+
+    D --> H[("MySQL<br/>system_* 表校验")]
+    B -.-> I["RuoYi-Vue-Pro 被测系统<br/>后端 48080 / 前端 80 / Redis"]
+
+    style A fill:#3b82f6,color:#fff
+    style B fill:#8b5cf6,color:#fff
+    style C fill:#0891b2,color:#fff
+    style D fill:#f59e0b,color:#fff
+    style F fill:#10b981,color:#fff
+    style G fill:#10b981,color:#fff
+```
+
+**分层职责：**
+- **Testcases 用例层**：只表达测试逻辑（准备-执行-断言-清理），不直接调底层 API
+- **Clients/Pages 封装层**：把业务动作封装成方法（如 `user_client.create()`、`dept_page.search()`）
+- **Base 基础层**：统一处理请求头/Token 注入、浏览器等待/截图等通用机制
+- **Common 公共层**：配置读取、日志脱敏、DB 查询、断言工具、数据清理
+
 ## 自动化范围
 - **API 接口**：75 条
-- **UI 自动化**：60 条
+- **UI 自动化**：64 条（含 4 条 REAL 纯 UI 操作用例）
 - **接口联动 / DB 校验**：20 条
-- **合计**：155 条测试实例
+- **合计**：159 条测试实例
 
 ## 配置方式（推荐环境变量）
 ```bash
