@@ -3,6 +3,8 @@
 覆盖 DEPT_API_001 ~ 010：
 - CRUD + 异常 + 重复 + 状态切换 + 删除后查不到 + 数据库校验
 
+DEPT_API_001~003 采用 YAML 表驱动（data/dept_data.yaml 的 create_cases）。
+
 学习重点：树形结构、上级部门 parentId、状态切换、数据清理。
 """
 import allure
@@ -14,6 +16,10 @@ from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
+from common.data_provider import load_create_cases, build_parametrize
+
+
+_DEPT_CASES, _DEPT_IDS = build_parametrize(load_create_cases("dept"))
 
 
 @allure.feature("部门管理接口")
@@ -21,36 +27,32 @@ from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
 class TestDeptApi:
 
     @allure.story("新增")
-    @allure.title("DEPT_API_001 新增部门成功")
-    def test_create_dept(self, dept_client):
-        name = gen_name("auto_dept")
-        data = {"name": name, "parentId": 0, "sort": 1, "status": 0,
-                "phone": "13800000000", "email": "a@test.com"}
-        body = dept_client.create(data).json()
-        assert_api_ok(body, "新增部门")
-        assert body["data"], "未返回 id"
-        dept_client.delete(body["data"])
+    @pytest.mark.parametrize("case", _DEPT_CASES, ids=_DEPT_IDS)
+    def test_create_dept_ddt(self, dept_client, case):
+        """DEPT_API_001~003 表驱动：合法创建 + 名称为空 + 重复部门。
 
-    @allure.story("异常")
-    @allure.title("DEPT_API_002 新增部门名称为空失败")
-    def test_create_empty_name(self, dept_client):
-        body = dept_client.create(
-            {"name": "", "parentId": 0, "sort": 1, "status": 0}
-        ).json()
-        assert_api_fail(body, "名称为空")
+        数据来源 data/dept_data.yaml 的 create_cases。
+        """
+        allure.dynamic.title(f"{case['case_id']} {case['desc']}")
+        if case["setup"] == "duplicate":
+            first = dept_client.create(case["payload"]).json()
+            assert_api_ok(first, "前置：第一次创建")
+            try:
+                body = dept_client.create(case["payload"]).json()
+            finally:
+                dept_client.delete(first["data"])
+        else:
+            body = dept_client.create(case["payload"]).json()
 
-    @allure.story("异常")
-    @allure.title("DEPT_API_003 新增重复部门失败")
-    def test_create_duplicate(self, dept_client):
-        name = gen_name("auto_dept")
-        data = {"name": name, "parentId": 0, "sort": 1, "status": 0}
-        first = dept_client.create(data).json()
-        assert_api_ok(first, "第一次新增")
-        try:
-            dup = dept_client.create(data).json()
-            assert_api_fail(dup, "重复新增")
-        finally:
-            dept_client.delete(first["data"])
+        if case["expect_ok"]:
+            assert_api_ok(body, case["desc"])
+            assert body["data"], "未返回 id"
+            dept_client.delete(body["data"])
+        else:
+            assert_api_fail(body, case["desc"])
+            if case["expect_msg_contains"]:
+                assert case["expect_msg_contains"] in body.get("msg", ""), \
+                    f"msg 期望含 {case['expect_msg_contains']!r}，实际 {body.get('msg')!r}"
 
     @allure.story("查询")
     @allure.title("DEPT_API_004 查询部门列表成功")

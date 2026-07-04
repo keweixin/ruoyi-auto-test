@@ -10,3 +10,19 @@ dept:
     email: "autodept@test.com"
   search_existing:
     name: "研发部"        # 系统已有部门
+
+  # ===== 表驱动测试用例 =====
+  create_cases:
+    - case_id: "DEPT_API_001"
+      desc: "新增部门成功"
+      expect_ok: true
+    - case_id: "DEPT_API_002"
+      desc: "新增部门名称为空失败"
+      overrides: { name: "" }
+      expect_ok: false
+      expect_msg_contains: "名称"
+    - case_id: "DEPT_API_003"
+      desc: "新增重复部门失败"
+      setup: "duplicate"
+      expect_ok: false
+      expect_msg_contains: "存在"

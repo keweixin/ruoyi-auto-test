@@ -9,7 +9,22 @@ role:
     sort: 1
     status: 0
     remark: "自动化测试角色"
-  # 给测试角色分配的菜单 id（示例：字典管理相关，以本地为准）
   assign_menu_ids: [1, 2, 3]
   search_existing:
     name: "超级管理员"
+
+  # ===== 表驱动测试用例 =====
+  create_cases:
+    - case_id: "ROLE_API_001"
+      desc: "新增角色成功"
+      expect_ok: true
+    - case_id: "ROLE_API_002"
+      desc: "新增角色名称为空失败"
+      overrides: { name: "" }
+      expect_ok: false
+      expect_msg_contains: "名称"
+    - case_id: "ROLE_API_003"
+      desc: "新增重复角色失败"
+      setup: "duplicate"
+      expect_ok: false
+      expect_msg_contains: "存在"

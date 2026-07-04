@@ -12,5 +12,28 @@ user:
     status: 0
   search_existing:
     username: "admin"
-  # 创建测试用户时绑定的角色（可选）
   default_role_id: 1            # 系统已有角色 id
+
+  # ===== 表驱动测试用例（由 common.data_provider.load_create_cases 读取）=====
+  # payload_template: "valid" 自动用上面 create 字段生成合法 payload（随机化 username/nickname/mobile）
+  # overrides: 覆盖 payload 的特定字段，构造非法/边界场景
+  # setup: "duplicate" 表示先创建一条，再用同 username 再建以触发重复校验
+  create_cases:
+    - case_id: "USER_API_001"
+      desc: "新增后台用户成功"
+      expect_ok: true
+    - case_id: "USER_API_002"
+      desc: "用户名为空失败"
+      overrides: { username: "" }
+      expect_ok: false
+      expect_msg_contains: "用户账号"
+    - case_id: "USER_API_003"
+      desc: "手机号格式错误失败"
+      overrides: { mobile: "123" }
+      expect_ok: false
+      expect_msg_contains: "手机"
+    - case_id: "USER_API_004"
+      desc: "重复用户名失败"
+      setup: "duplicate"
+      expect_ok: false
+      expect_msg_contains: "存在"

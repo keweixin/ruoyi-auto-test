@@ -4,6 +4,9 @@
 - CRUD + 异常(用户名空/手机号错/重复) + 查询 + 状态(禁用登录失败/启用登录成功)
 - 重置密码 + 数据库校验
 
+USER_API_001~004 采用 YAML 表驱动（data/user_data.yaml 的 create_cases），
+由 common.data_provider.load_create_cases 读取参数化数据。
+
 学习重点：用户和部门关系、用户状态流转、重置密码、接口和 UI 双向校验。
 
 ⚠ 已核对源码：UserSaveReqVO 无 status / roleIds
@@ -19,7 +22,11 @@ from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_username, gen_mobile
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
+from common.data_provider import load_create_cases, build_parametrize
 from api_auto.clients.auth_client import AuthClient
+
+
+_USER_CASES, _USER_IDS = build_parametrize(load_create_cases("user"))
 
 
 @allure.feature("用户管理接口")
@@ -41,43 +48,34 @@ class TestUserApi:
         return body["data"], username, password
 
     @allure.story("新增")
-    @allure.title("USER_API_001 新增后台用户成功")
-    @pytest.mark.smoke
-    def test_create_user(self, user_client):
-        uid, _, _ = self._create_user(user_client)
-        assert uid
-        user_client.delete(uid)
+    @pytest.mark.parametrize("case", _USER_CASES, ids=_USER_IDS)
+    def test_create_user_ddt(self, user_client, case):
+        """USER_API_001~004 表驱动：合法创建 + 用户名空 + 手机号错 + 重复用户名。
 
-    @allure.story("异常")
-    @allure.title("USER_API_002 新增用户时用户名为空失败")
-    def test_create_empty_username(self, user_client):
-        body = user_client.create({
-            "username": "", "password": "Test123456",
-            "nickname": "x", "deptId": 100
-        }).json()
-        assert_api_fail(body, "用户名为空")
+        数据来源 data/user_data.yaml 的 create_cases，新增用例只需加 YAML 行，无需改代码。
+        """
+        allure.dynamic.title(f"{case['case_id']} {case['desc']}")
+        # 重复场景：先创建一条占住 username，再用同 username 再建
+        if case["setup"] == "duplicate":
+            first = user_client.create(case["payload"]).json()
+            assert_api_ok(first, "前置：第一次创建")
+            try:
+                body = user_client.create(case["payload"]).json()
+            finally:
+                user_client.delete(first["data"])
+        else:
+            body = user_client.create(case["payload"]).json()
 
-    @allure.story("异常")
-    @allure.title("USER_API_003 新增用户时手机号格式错误失败")
-    def test_create_bad_mobile(self, user_client):
-        body = user_client.create({
-            "username": gen_username(), "password": "Test123456",
-            "nickname": "x", "mobile": "123", "deptId": 100
-        }).json()
-        assert_api_fail(body, "手机号格式错误")
-
-    @allure.story("异常")
-    @allure.title("USER_API_004 新增重复用户名失败")
-    def test_create_duplicate_username(self, user_client):
-        uid, username, _ = self._create_user(user_client)
-        try:
-            body = user_client.create({
-                "username": username, "password": "Test123456",
-                "nickname": "dup", "deptId": 100
-            }).json()
-            assert_api_fail(body, "用户名重复")
-        finally:
+        if case["expect_ok"]:
+            assert_api_ok(body, case["desc"])
+            uid = body["data"]
+            assert uid, "创建成功但未返回 id"
             user_client.delete(uid)
+        else:
+            assert_api_fail(body, case["desc"])
+            if case["expect_msg_contains"]:
+                assert case["expect_msg_contains"] in body.get("msg", ""), \
+                    f"msg 期望含 {case['expect_msg_contains']!r}，实际 {body.get('msg')!r}"
 
     @allure.story("查询")
     @allure.title("USER_API_005 按用户名查询用户成功")

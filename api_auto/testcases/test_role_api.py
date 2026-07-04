@@ -3,6 +3,8 @@
 覆盖 ROLE_API_001 ~ 012：
 - CRUD + 异常 + 重复 + 状态切换 + 分配菜单权限 + 查询角色菜单 + 数据库校验(角色/角色菜单关系)
 
+ROLE_API_001~003 采用 YAML 表驱动（data/role_data.yaml 的 create_cases）。
+
 学习重点：权限系统理解、角色和菜单关系、数据库中间表校验。
 
 ⚠ 已核对源码：RoleSaveReqVO 无 menuIds / dataScope
@@ -19,6 +21,10 @@ from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
+from common.data_provider import load_create_cases, build_parametrize
+
+
+_ROLE_CASES, _ROLE_IDS = build_parametrize(load_create_cases("role"))
 
 
 @allure.feature("角色管理接口")
@@ -38,33 +44,33 @@ class TestRoleApi:
         return body["data"]
 
     @allure.story("新增")
-    @allure.title("ROLE_API_001 新增角色成功")
-    @pytest.mark.smoke
-    def test_create_role(self, role_client):
-        rid = self._create_role(role_client)
-        assert rid
-        role_client.delete(rid)
+    @pytest.mark.parametrize("case", _ROLE_CASES, ids=_ROLE_IDS)
+    def test_create_role_ddt(self, role_client, case):
+        """ROLE_API_001~003 表驱动：合法创建 + 名称为空 + 重复角色。
 
-    @allure.story("异常")
-    @allure.title("ROLE_API_002 新增角色名称为空失败")
-    def test_create_empty_name(self, role_client):
-        body = role_client.create(
-            {"name": "", "code": gen_name("c"), "sort": 1, "status": 0}
-        ).json()
-        assert_api_fail(body, "名称为空")
+        数据来源 data/role_data.yaml 的 create_cases。
+        """
+        allure.dynamic.title(f"{case['case_id']} {case['desc']}")
+        if case["setup"] == "duplicate":
+            first = role_client.create(case["payload"]).json()
+            assert_api_ok(first, "前置：第一次创建")
+            try:
+                body = role_client.create(case["payload"]).json()
+            finally:
+                role_client.delete(first["data"])
+        else:
+            body = role_client.create(case["payload"]).json()
 
-    @allure.story("异常")
-    @allure.title("ROLE_API_003 新增重复角色失败")
-    def test_create_duplicate(self, role_client):
-        data = {"name": gen_name("auto_role"), "code": gen_name("auto_role_code"),
-                "sort": 1, "status": 0}
-        first = role_client.create(data).json()
-        assert_api_ok(first, "第一次新增")
-        try:
-            dup = role_client.create(data).json()
-            assert_api_fail(dup, "重复新增")
-        finally:
-            role_client.delete(first["data"])
+        if case["expect_ok"]:
+            assert_api_ok(body, case["desc"])
+            rid = body["data"]
+            assert rid, "创建成功但未返回 id"
+            role_client.delete(rid)
+        else:
+            assert_api_fail(body, case["desc"])
+            if case["expect_msg_contains"]:
+                assert case["expect_msg_contains"] in body.get("msg", ""), \
+                    f"msg 期望含 {case['expect_msg_contains']!r}，实际 {body.get('msg')!r}"
 
     @allure.story("查询")
     @allure.title("ROLE_API_004 查询角色列表成功")

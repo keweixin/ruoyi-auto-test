@@ -9,3 +9,19 @@ post:
     remark: "自动化测试岗位"
   search_existing:
     name: "CEO"        # 若依自带岗位
+
+  # ===== 表驱动测试用例 =====
+  create_cases:
+    - case_id: "POST_API_001"
+      desc: "新增岗位成功"
+      expect_ok: true
+    - case_id: "POST_API_002"
+      desc: "新增岗位名称为空失败"
+      overrides: { name: "" }
+      expect_ok: false
+      expect_msg_contains: "名称"
+    - case_id: "POST_API_003"
+      desc: "新增岗位编码重复失败"
+      setup: "duplicate_code"   # 岗位重复校验的是 code 而非 name
+      expect_ok: false
+      expect_msg_contains: "存在"
