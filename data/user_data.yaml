@@ -8,7 +8,6 @@ user:
     password: "Test123456"      # 4-16 位
     nickname_prefix: "自动用户"
     mobile: "13800000000"
-    deptId: 100                 # 系统已有部门 id（芋道根部门）
     status: 0
   search_existing:
     username: "admin"

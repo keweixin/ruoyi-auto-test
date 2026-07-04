@@ -7,7 +7,8 @@ from urllib.parse import urlparse
 from playwright.sync_api import Error as PlaywrightError
 
 from common.logger import log
-from api_auto.auth.token_registry import TOKEN_REGISTRY
+from ui_auto.base.base_page import is_ci, TIMEOUT_NAV, TIMEOUT_CI_NAV
+from common.token_registry import TOKEN_REGISTRY
 from ui_auto.pages.login_page import LoginPage
 
 
@@ -49,9 +50,8 @@ class AuthStateManager:
 
     def new_authenticated_page(self):
         """创建已登录 Context/Page；快照失效时重新生成并重试一次。"""
-        import os
         # CI（Vite dev server 首次编译较慢）下放宽超时
-        nav_timeout = 30000 if os.getenv("CI") else 15000
+        nav_timeout = TIMEOUT_CI_NAV if is_ci() else TIMEOUT_NAV
         for attempt in range(2):
             try:
                 context = self.browser.new_context(storage_state=self.ensure_state())

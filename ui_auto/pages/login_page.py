@@ -11,7 +11,7 @@
 """
 from urllib.parse import urlparse
 
-from ui_auto.base.base_page import BasePage
+from ui_auto.base.base_page import BasePage, is_ci, TIMEOUT_NAV
 from common.config import cfg
 
 
@@ -69,9 +69,8 @@ class LoginPage(BasePage):
         CI 环境（Vite dev server 首次编译首页 chunk 较慢）默认给 40s，
         本地默认 15s。
         """
-        import os
         if timeout is None:
-            timeout = 40000 if os.getenv("CI") else 15000
+            timeout = 40000 if is_ci() else TIMEOUT_NAV
         self.page.wait_for_url(
             lambda url: urlparse(str(url)).path in ("/", "/index"),
             timeout=timeout,

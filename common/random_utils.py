@@ -68,5 +68,6 @@ def gen_username():
 
 
 def gen_email():
-    """生成随机邮箱。"""
-    return f"{gen_name('user')}@test.com"
+    """使用 Faker 生成格式合法的邮箱。"""
+    from common.faker_utils import fake_email
+    return fake_email()

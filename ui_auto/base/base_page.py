@@ -5,7 +5,22 @@
 """
 import os
 from urllib.parse import urlparse
+from playwright.sync_api import expect
 from common.logger import log
+from common.config import cfg
+
+
+# ===== 超时常量（集中管理，避免魔数散落）=====
+TIMEOUT_SHORT = 3000       # 短等待：表单校验、轻量元素
+TIMEOUT_MEDIUM = 5000      # 中等待：弹窗、下拉、按钮
+TIMEOUT_LONG = 8000        # 长等待：页面表格、导航
+TIMEOUT_NAV = 15000        # 导航默认超时
+TIMEOUT_CI_NAV = 30000     # CI 下导航超时（Vite dev server 首编较慢）
+
+
+def is_ci():
+    """是否在 CI 环境（Jenkins 等）下运行。"""
+    return bool(os.getenv("CI"))
 
 
 class BasePage:
@@ -14,10 +29,9 @@ class BasePage:
 
     def open(self, url):
         log.info("打开页面: %s", url)
-        import os
-        if os.getenv("CI"):
+        if is_ci():
             # CI 下 Vite dev server 首次编译路由 chunk 较慢，用 domcontentloaded 避免等 load
-            self.page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            self.page.goto(url, wait_until="domcontentloaded", timeout=TIMEOUT_CI_NAV)
         else:
             self.page.goto(url)
 
@@ -70,6 +84,23 @@ class BasePage:
     def table_has_row(self, keyword):
         return self.page.locator(".el-table__row").filter(has_text=keyword).count() > 0
 
+    def row_exists(self, keyword):
+        """表格是否存在含 keyword 的行（table_has_row 的语义化别名）。"""
+        return self.table_has_row(keyword)
+
+    def reset_search(self):
+        """点击重置按钮清空查询条件。"""
+        self.table_btn("重置").click()
+
+    def open_page(self, wait_selector=".el-table"):
+        """打开列表页模板：子类声明 URL 类属性，本方法拼接 web_url 并等待表格可见。
+
+        menu 等非表格列表页可传 wait_selector 指定等待元素；传 None 则只打开不等待。
+        """
+        self.open(cfg.web_url + self.URL)
+        if wait_selector:
+            self.wait_visible(self.page.locator(wait_selector))
+
     def table_row_by_keyword(self, keyword, unique=True):
         rows = self.page.locator(".el-table__row").filter(has_text=keyword)
         count = rows.count()
@@ -110,7 +141,7 @@ class BasePage:
 
     def click_tree_option(self, label, timeout=8000):
         """点击当前可见树形下拉中的选项。"""
-        option = self.page.locator(".el-popper:visible .el-tree-node__label").filter(has_text=label).first
+        option = self.page.get_by_text(label, exact=True).first
         option.wait_for(state="visible", timeout=timeout)
         option.click()
 
@@ -139,7 +170,31 @@ class BasePage:
 
     def table_btn(self, button_name):
         """页面顶部表格操作按钮（搜索/重置/新增/导出等），用文本匹配避开 icon 前缀。"""
-        return self.page.get_by_text(button_name).first
+        return self.page.get_by_role("button", name=button_name).first
+
+    def wait_table_contains(self, keyword, timeout=8000):
+        row = self.page.locator(".el-table__row").filter(has_text=keyword).first
+        row.wait_for(state="visible", timeout=timeout)
+        return row
+
+    def wait_table_not_contains(self, keyword, timeout=8000):
+        row = self.page.locator(".el-table__row").filter(has_text=keyword)
+        row.first.wait_for(state="hidden", timeout=timeout)
+
+    def wait_switch_state(self, keyword, enabled, timeout=8000):
+        switch = self.table_row_by_keyword(keyword).get_by_role("switch")
+        expect(switch).to_have_attribute(
+            "aria-checked", "true" if enabled else "false", timeout=timeout
+        )
+        return switch
+
+    def click_and_wait_response(self, locator, api_path, timeout=15000):
+        with self.page.expect_response(
+            lambda response: api_path in response.url,
+            timeout=timeout,
+        ) as response_info:
+            locator.click()
+        return response_info.value
 
     def open_create_dialog(self):
         """点击页面工具栏新增按钮并返回可见业务弹窗。"""

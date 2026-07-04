@@ -10,49 +10,29 @@
 import os
 import copy
 
-from common.yaml_utils import load_yaml
-from common.random_utils import gen_name, gen_username, gen_mobile, gen_email
+from common.yaml_utils import load_case_list
+from common.test_data import valid_dept_data, valid_post_data, valid_role_data, valid_user_data
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
 def _valid_payload(module):
-    """根据模块 create 字段生成一份合法 payload（随机化唯一字段）。"""
-    cfg = load_yaml(os.path.join(_DATA_DIR, f"{module}_data.yaml"))[module]["create"]
-    if module == "user":
-        return {
-            "username": gen_username(),
-            "password": cfg["password"],
-            "nickname": gen_name("auto_nick"),
-            "mobile": gen_mobile(),
-            "deptId": cfg["deptId"],
-        }
-    if module == "role":
-        return {
-            "name": gen_name("auto_role"),
-            "code": gen_name("auto_role_code"),
-            "sort": cfg["sort"],
-            "status": cfg["status"],
-            "remark": cfg.get("remark", ""),
-        }
-    if module == "dept":
-        return {
-            "name": gen_name("auto_dept"),
-            "parentId": cfg["parentId"],
-            "sort": cfg["sort"],
-            "status": cfg["status"],
-            "phone": cfg.get("phone", ""),
-            "email": cfg.get("email", ""),
-        }
-    if module == "post":
-        return {
-            "name": gen_name("auto_post"),
-            "code": gen_name("auto_code"),
-            "sort": cfg["sort"],
-            "status": cfg["status"],
-            "remark": cfg.get("remark", ""),
-        }
+    """运行时生成合法 payload，避免收集阶段访问数据库。"""
+    builders = {
+        "user": valid_user_data,
+        "role": valid_role_data,
+        "dept": valid_dept_data,
+        "post": valid_post_data,
+    }
+    if module in builders:
+        return builders[module]()
     raise ValueError(f"不支持的数据驱动模块: {module}")
+
+
+def build_case_payload(module, case):
+    payload = _valid_payload(module)
+    payload.update(copy.deepcopy(case.get("overrides", {})))
+    return payload
 
 
 def load_create_cases(module):
@@ -68,15 +48,12 @@ def load_create_cases(module):
           "duplicate"      先用同 payload 创建一条占位，再用同 payload 再建
           "duplicate_code" 先用 payload 创建一条，再用同 code 但新 name 再建（岗位场景）
     """
-    data = load_yaml(os.path.join(_DATA_DIR, f"{module}_data.yaml"))[module]
-    cases = data.get("create_cases", [])
+    cases = load_case_list(
+        os.path.join(_DATA_DIR, f"{module}_data.yaml"), module, "create_cases"
+    )
     result = []
     for c in cases:
         case = copy.deepcopy(c)
-        # 生成 payload：默认用合法模板，再叠加 overrides
-        payload = _valid_payload(module)
-        payload.update(case.get("overrides", {}))
-        case["payload"] = payload
         case.setdefault("expect_msg_contains", "")
         case.setdefault("setup", "")
         result.append(case)

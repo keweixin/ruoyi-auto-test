@@ -7,16 +7,51 @@
 """
 import allure
 import pytest
+import os
 
-from common.config import cfg
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
+from common.yaml_utils import load_case_list
+
+
+_MENU_VALIDATION_CASES = load_case_list(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "menu_data.yaml"),
+    "menu", "validation_cases"
+)
 
 
 @allure.feature("菜单管理接口")
 @pytest.mark.api
 class TestMenuApi:
+
+    @allure.story("参数校验")
+    @pytest.mark.parametrize("case", _MENU_VALIDATION_CASES, ids=[case["case_id"] for case in _MENU_VALIDATION_CASES])
+    def test_menu_validation(self, menu_client, case):
+        data = {"parentId": 0, "name": gen_name("auto_menu"), "type": 2,
+                "path": gen_name("auto"), "sort": 1, "status": 0}
+        data[case["field"]] = case["value"]
+        assert_api_fail(menu_client.create(data).json(), case["desc"])
+
+    @allure.story("查询")
+    @allure.title("MENU_API_007 菜单树选择数据与精简列表一致")
+    def test_treeselect_matches_simple_list(self, menu_client):
+        tree_body = menu_client.treeselect().json()
+        simple_body = menu_client.list_all_simple().json()
+        assert_api_ok(tree_body, "查询菜单树")
+        assert_api_ok(simple_body, "查询精简菜单列表")
+
+        def collect_ids(items):
+            result = set()
+            for item in items:
+                if item.get("id") is not None:
+                    result.add(item["id"])
+                result.update(collect_ids(item.get("children") or []))
+            return result
+
+        tree_ids = collect_ids(tree_body["data"])
+        simple_ids = {item["id"] for item in simple_body["data"]}
+        assert tree_ids == simple_ids
 
     @allure.story("查询")
     @allure.title("MENU_API_001 查询菜单列表成功")

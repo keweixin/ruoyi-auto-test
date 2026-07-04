@@ -11,11 +11,19 @@
 import allure
 import pytest
 import time
+import os
 
 from common.config import cfg
 from common.assert_utils import assert_api_ok, assert_api_fail
 from api_auto.clients.auth_client import AuthClient
 from common.schema_utils import assert_schema, LOGIN_SCHEMA, GET_INFO_SCHEMA
+from common.yaml_utils import load_case_list
+
+
+_LOGIN_CASES = load_case_list(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "login_data.yaml"),
+    "login", "cases"
+)
 
 
 @allure.feature("登录认证接口")
@@ -23,13 +31,12 @@ from common.schema_utils import assert_schema, LOGIN_SCHEMA, GET_INFO_SCHEMA
 class TestAuthApi:
 
     @allure.story("登录")
-    @pytest.mark.parametrize("username,password,expect_ok,desc", [
-        pytest.param(cfg.admin_user, cfg.admin_pwd, True,  "AUTH_API_001 正确账号密码登录成功", marks=pytest.mark.smoke),
-        (cfg.admin_user, "wrong_pwd",   False, "AUTH_API_002 错误密码登录失败"),
-        ("",             cfg.admin_pwd, False, "AUTH_API_003 用户名为空登录失败"),
-        (cfg.admin_user, "",            False, "AUTH_API_004 密码为空登录失败"),
-    ], ids=["正确登录", "错误密码", "空用户名", "空密码"])
-    def test_login(self, username, password, expect_ok, desc):
+    @pytest.mark.parametrize("case", _LOGIN_CASES, ids=[case["case_id"] for case in _LOGIN_CASES])
+    def test_login(self, case):
+        username = cfg.admin_user if case["username"] == "$ADMIN_USER" else case["username"]
+        password = cfg.admin_pwd if case["password"] == "$ADMIN_PASSWORD" else case["password"]
+        expect_ok = case["expect_ok"]
+        desc = f'{case["case_id"]} {case["desc"]}'
         allure.dynamic.title(desc)
         client = AuthClient(cfg.base_url, cfg.tenant_id)
         body = client.login(username, password).json()
@@ -94,3 +101,10 @@ class TestAuthApi:
         body = auth_client.get_permission_info().json()
         assert_api_ok(body, "401 后刷新重试")
         assert token_manager.access_token != "invalid_token_for_retry"
+
+    @allure.story("fixture")
+    @allure.title("AUTH_API_012 裸 admin_token 可创建独立鉴权 Client")
+    def test_admin_token_fixture(self, admin_token):
+        client = AuthClient(cfg.base_url, cfg.tenant_id)
+        client.set_token(admin_token)
+        assert_api_ok(client.get_permission_info().json(), "裸 Token 鉴权")

@@ -10,13 +10,12 @@ DEPT_API_001~003 采用 YAML 表驱动（data/dept_data.yaml 的 create_cases）
 import allure
 import pytest
 
-from common.config import cfg
 from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
-from common.data_provider import load_create_cases, build_parametrize
+from common.data_provider import build_case_payload, load_create_cases, build_parametrize
 
 
 _DEPT_CASES, _DEPT_IDS = build_parametrize(load_create_cases("dept"))
@@ -34,15 +33,16 @@ class TestDeptApi:
         数据来源 data/dept_data.yaml 的 create_cases。
         """
         allure.dynamic.title(f"{case['case_id']} {case['desc']}")
+        payload = build_case_payload("dept", case)
         if case["setup"] == "duplicate":
-            first = dept_client.create(case["payload"]).json()
+            first = dept_client.create(payload).json()
             assert_api_ok(first, "前置：第一次创建")
             try:
-                body = dept_client.create(case["payload"]).json()
+                body = dept_client.create(payload).json()
             finally:
                 dept_client.delete(first["data"])
         else:
-            body = dept_client.create(case["payload"]).json()
+            body = dept_client.create(payload).json()
 
         if case["expect_ok"]:
             assert_api_ok(body, case["desc"])

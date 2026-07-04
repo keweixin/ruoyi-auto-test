@@ -7,6 +7,7 @@ import pytest
 
 from common.assert_utils import assert_api_ok
 from common.random_utils import gen_mobile, gen_username
+from common.test_data import valid_user_data
 from ui_auto.pages.user_page import UserPage
 
 
@@ -17,13 +18,9 @@ class TestUserUi:
     def _create_user(self, user_client, status=0):
         username = gen_username()
         mobile = gen_mobile()
-        body = user_client.create({
-            "username": username,
-            "password": "Test123456",
-            "nickname": "自动用户",
-            "mobile": mobile,
-            "deptId": 100,
-        }).json()
+        body = user_client.create(valid_user_data(
+            username=username, password="Test123456", mobile=mobile
+        )).json()
         assert_api_ok(body, "API 创建用户")
         uid = body["data"]
         if status != 0:
@@ -79,13 +76,9 @@ class TestUserUi:
     def test_edit_user(self, page, user_client):
         uid, username, mobile = self._create_user(user_client)
         try:
-            assert_api_ok(user_client.update({
-                "id": uid,
-                "username": username,
-                "nickname": "已编辑",
-                "mobile": mobile,
-                "deptId": 100,
-            }).json())
+            current = user_client.get(uid).json()["data"]
+            current.update({"id": uid, "username": username, "nickname": "已编辑", "mobile": mobile})
+            assert_api_ok(user_client.update(current).json())
             up = UserPage(page)
             up.open_page()
             up.search_by_username(username)

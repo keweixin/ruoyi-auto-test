@@ -10,13 +10,12 @@ POST_API_001~003 采用 YAML 表驱动（data/post_data.yaml 的 create_cases）
 import allure
 import pytest
 
-from common.config import cfg
 from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
-from common.data_provider import load_create_cases, build_parametrize
+from common.data_provider import build_case_payload, load_create_cases, build_parametrize
 
 
 _POST_CASES, _POST_IDS = build_parametrize(load_create_cases("post"))
@@ -35,21 +34,22 @@ class TestPostApi:
         岗位的重复校验针对 code（非 name），故 duplicate_code 时第二次用同 code 但新 name。
         """
         allure.dynamic.title(f"{case['case_id']} {case['desc']}")
+        payload = build_case_payload("post", case)
         if case["setup"] in ("duplicate", "duplicate_code"):
-            first = post_client.create(case["payload"]).json()
+            first = post_client.create(payload).json()
             assert_api_ok(first, "前置：第一次创建")
             try:
                 if case["setup"] == "duplicate_code":
                     # 同 code 但新 name，触发 code 唯一性校验
-                    dup_payload = dict(case["payload"])
+                    dup_payload = dict(payload)
                     dup_payload["name"] = gen_name("auto_post2")
                     body = post_client.create(dup_payload).json()
                 else:
-                    body = post_client.create(case["payload"]).json()
+                    body = post_client.create(payload).json()
             finally:
                 post_client.delete(first["data"])
         else:
-            body = post_client.create(case["payload"]).json()
+            body = post_client.create(payload).json()
 
         if case["expect_ok"]:
             assert_api_ok(body, case["desc"])

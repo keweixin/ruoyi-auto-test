@@ -3,28 +3,20 @@
 特点：含部门树、角色多选、状态开关、重置密码弹窗。
 """
 from ui_auto.base.base_page import BasePage
-from common.config import cfg
 
 
 class UserPage(BasePage):
-    """用户管理页。"""
+    """用户管理页。open_page/reset_search/row_exists 继承自 BasePage。"""
 
     URL = "/system/user"
 
-    def open_page(self):
-        self.open(cfg.web_url + self.URL)
-        self.wait_visible(self.page.locator(".el-table"))
-
     def search_by_username(self, username):
         self.page.get_by_placeholder("请输入用户名称").fill(username)
-        self.page.get_by_role("button", name="搜索").click()
+        self.table_btn("搜索").click()
 
     def search_by_mobile(self, mobile):
         self.page.get_by_placeholder("请输入手机号码").fill(mobile)
-        self.page.get_by_role("button", name="搜索").click()
-
-    def reset_search(self):
-        self.page.get_by_role("button", name="重置").click()
+        self.table_btn("搜索").click()
 
     def add(self, username, nickname, mobile):
         """新增用户（填写用户名/昵称/手机号/密码 + 默认部门）。"""
@@ -37,9 +29,6 @@ class UserPage(BasePage):
         self.form_item_input(dialog, "手机号码").fill(mobile)
         self.form_item_input(dialog, "用户密码").fill("Test123456")
         self.dialog_submit()
-
-    def row_exists(self, keyword):
-        return self.table_has_row(keyword)
 
     def is_enabled(self, keyword):
         """读取用户行状态开关，返回当前是否启用。"""
@@ -57,6 +46,17 @@ class UserPage(BasePage):
         switch = self.table_row_by_keyword(keyword).locator(".el-switch").first
         switch.scroll_into_view_if_needed()
         switch.click()
+
+    def toggle_status_and_wait(self, keyword, enabled):
+        self.toggle_status(keyword)
+        box = self.page.locator(".el-message-box")
+        box.wait_for(state="visible", timeout=5000)
+        confirm = box.get_by_role("button", name="确定", exact=True).first
+        if not confirm.count():
+            confirm = box.get_by_role("button", name="确 定").first
+        self.click_and_wait_response(confirm, "/system/user/update-status")
+        box.wait_for(state="hidden", timeout=5000)
+        self.wait_switch_state(keyword, enabled)
 
     def reset_password(self, keyword, new_pwd):
         """重置某用户密码。仅允许操作本次 auto 测试用户且要求匹配唯一。"""

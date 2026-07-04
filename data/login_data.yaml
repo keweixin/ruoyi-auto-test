@@ -1,12 +1,11 @@
 # 登录认证测试数据
+# cases 段由 test_auth_api.py 的 load_case_list 读取，驱动登录参数化用例
 login:
-  # 正确账号（与 env.yaml 的 admin 一致）
-  valid:
-    username: "admin"
-    password: "admin123"
-  # 错误场景（参数化用）
-  invalid:
-    - { username: "admin", password: "wrong_pwd",   desc: "错误密码" }
-    - { username: "",      password: "admin123",    desc: "空用户名" }
-    - { username: "admin", password: "",            desc: "空密码" }
-    - { username: "nouser", password: "admin123",   desc: "不存在用户" }
+  cases:
+    - { case_id: AUTH_API_001, username: "$ADMIN_USER", password: "$ADMIN_PASSWORD", expect_ok: true, desc: "正确账号" }
+    - { case_id: AUTH_API_002, username: "$ADMIN_USER", password: "wrong_pwd", expect_ok: false, desc: "错误密码" }
+    - { case_id: AUTH_API_003, username: "", password: "$ADMIN_PASSWORD", expect_ok: false, desc: "空用户名" }
+    - { case_id: AUTH_API_004, username: "$ADMIN_USER", password: "", expect_ok: false, desc: "空密码" }
+    - { case_id: AUTH_API_013, username: "auto_user_not_exists", password: "Test123456", expect_ok: false, desc: "不存在用户" }
+    - { case_id: AUTH_API_014, username: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", password: "Test123456", expect_ok: false, desc: "用户名长度边界" }
+

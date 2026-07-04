@@ -9,7 +9,6 @@ role:
     sort: 1
     status: 0
     remark: "自动化测试角色"
-  assign_menu_ids: [1, 2, 3]
   search_existing:
     name: "超级管理员"
 

@@ -10,18 +10,53 @@
 import time
 import allure
 import pytest
+import os
 
-from common.config import cfg
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_page_result
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
+from common.yaml_utils import load_case_list
+
+
+_DICT_VALIDATION_CASES = load_case_list(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "dict_data.yaml"),
+    "dict", "validation_cases"
+)
 
 
 @allure.feature("字典管理接口")
 @pytest.mark.api
 class TestDictApi:
+
+    @allure.story("参数校验")
+    @pytest.mark.parametrize("case", _DICT_VALIDATION_CASES, ids=[case["case_id"] for case in _DICT_VALIDATION_CASES])
+    def test_type_validation(self, dict_client, case):
+        data = {"name": gen_name("auto_dict"), "type": gen_name("auto_type"), "status": 0}
+        data[case["field"]] = case["value"]
+        assert_api_fail(dict_client.create_type(data).json(), case["desc"])
+
+    @allure.story("查询")
+    @allure.title("DICT_API_016 兼容方法查询字典类型分页")
+    def test_list_type_compatibility(self, dict_client):
+        body = dict_client.list_type({"pageNo": 1, "pageSize": 10}).json()
+        assert_api_ok(body, "查询字典类型分页")
+        assert_page_result(body)
+
+    @allure.story("查询")
+    @allure.title("DICT_API_017 查询精简字典类型列表")
+    def test_list_type_all(self, dict_client):
+        body = dict_client.list_type_all().json()
+        assert_api_ok(body, "查询精简字典类型列表")
+        assert isinstance(body["data"], list)
+
+    @allure.story("查询")
+    @allure.title("DICT_API_018 查询字典数据分页")
+    def test_list_data_compatibility(self, dict_client):
+        body = dict_client.list_data({"pageNo": 1, "pageSize": 10}).json()
+        assert_api_ok(body, "查询字典数据分页")
+        assert_page_result(body)
 
     @allure.story("字典类型 - 新增")
     @allure.title("DICT_API_001 新增字典类型成功")
@@ -166,7 +201,7 @@ class TestDictApi:
         dict_client.delete_type(new_id)
         body = dict_client.get_type(new_id).json()
         # 若依删除后 get 通常返回 code!=0 或 data 为空
-        assert body.get("code") != 0 or not body.get("data"), "删除后仍能查到"
+        assert_not_found(body)
 
     @allure.story("字典数据 - CRUD")
     @allure.title("DICT_API_011 新增字典数据成功")

@@ -7,26 +7,14 @@
 - GET    /system/dept/get?id=       详情
 数据库表：system_dept(主键 id, parent_id, deleted 逻辑删除)
 """
-from api_auto.base.base_api import BaseApi
+from api_auto.base.crud_client import CrudClient
 
 
-class DeptClient(BaseApi):
-    """部门管理接口客户端。"""
+class DeptClient(CrudClient):
+    """部门管理接口客户端。CRUD 方法继承自 CrudClient，仅保留 dept 特有的 list。"""
 
-    def create(self, data):
-        return self.post("/system/dept/create", json=data)
-
-    def update(self, data):
-        return self.put("/system/dept/update", json=data)
-
-    def delete(self, dept_id):
-        return self.request("DELETE", "/system/dept/delete", params={"id": dept_id})
+    resource = "/system/dept"
 
     def list(self, params=None):
-        return self.request("GET", "/system/dept/list", params=params or {})
-
-    def get(self, dept_id):
-        return self.request("GET", "/system/dept/get", params={"id": dept_id})
-
-    def list_all_simple(self):
-        return self.request("GET", "/system/dept/list-all-simple")
+        """部门用 list（非分页 page），返回树形列表。"""
+        return self.request("GET", f"{self.resource}/list", params=params or {})

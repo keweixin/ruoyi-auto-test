@@ -6,6 +6,9 @@
 学习重点：UI 表单输入、Toast 断言、URL 断言、登录态。
 注意：登录类用例用 fresh_page（无登录态），否则无法测登录流程。
 """
+import json
+from pathlib import Path
+
 import allure
 import pytest
 
@@ -82,7 +85,7 @@ class TestLoginUi:
 
         hp = HomePage(fresh_page)
         hp.logout()
-        fresh_page.wait_for_url("**/login**", timeout=8000)
+        lp.wait_url("/login", timeout=8000)
         assert lp.is_login_page()
 
     @allure.title("AUTH_UI_008 未登录访问首页跳回登录页")
@@ -101,3 +104,11 @@ class TestLoginUi:
             assert HomePage(authenticated_page).is_home_page(), "失效登录态未自动恢复"
         finally:
             context.close()
+
+    @allure.title("AUTH_UI_010 storage_state 文件结构合法")
+    def test_storage_state_fixture(self, storage_state):
+        state_path = Path(storage_state)
+        assert state_path.is_file()
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        assert isinstance(state.get("cookies"), list)
+        assert isinstance(state.get("origins"), list)

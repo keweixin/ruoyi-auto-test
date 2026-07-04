@@ -1,35 +1,28 @@
 """DeptPage：部门管理页 Page Object。
 
-特点：树形表格，上级部门下拉选择（el-tree-select）。
-"""
+特点：树形表格，上级部门下拉选择（el-tree-select）"""
 from ui_auto.base.base_page import BasePage
-from common.config import cfg
 
 
 class DeptPage(BasePage):
-    """部门管理页。"""
+    """部门管理页。open_page/reset_search/row_exists 继承自 BasePage。"""
 
     URL = "/system/dept"
-
-    def open_page(self):
-        self.open(cfg.web_url + self.URL)
-        self.wait_visible(self.page.locator(".el-table"))
 
     def search_by_name(self, name):
         query_form = self.page.locator(".el-form").first
         query_form.get_by_placeholder("请输入部门名称").fill(name)
-        self.page.get_by_role("button", name="搜索").click()
-
-    def reset_search(self):
-        self.page.get_by_role("button", name="重置").click()
+        self.table_btn("搜索").click()
 
     def add(self, name, sort=1):
         """新增顶级部门，并填写当前表单要求的全部必填项。"""
-        self.page.get_by_role("button", name="新增").click()
+        self.table_btn("新增").click()
         dialog = self.visible_dialog()
-        self.form_item_input(dialog, "部门名称").fill(name)
-        self.form_item_input(dialog, "显示排序").fill(str(sort))
-        self.dialog_submit()
+        self.form_item_select(dialog, "上级部门").click()
+        self.click_tree_option("顶级部门")
+        self.dialog_input("请输入部门名称").fill(name)
+        self.fill_vue(self.form_item_input(dialog, "显示排序"), sort)
+        self.dialog_confirm()
 
     def edit_name(self, keyword, new_name):
         """修改唯一匹配部门的名称。"""
@@ -49,9 +42,6 @@ class DeptPage(BasePage):
             has_text=label
         ).first.click()
         self.dialog_submit()
-
-    def row_exists(self, keyword):
-        return self.table_has_row(keyword)
 
     def delete_row(self, keyword):
         self.safe_auto_keyword(keyword)

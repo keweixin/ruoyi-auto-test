@@ -9,33 +9,22 @@
 - PUT    /system/user/update-password    body: {id, password}
 数据库表：system_users(主键 id, username, mobile, deleted 逻辑删除)
 """
-from api_auto.base.base_api import BaseApi
+from api_auto.base.crud_client import CrudClient
 
 
-class UserClient(BaseApi):
-    """用户管理接口客户端。"""
+class UserClient(CrudClient):
+    """用户管理接口客户端。CRUD 继承自 CrudClient，保留 update_status / reset_password 特有方法。"""
 
-    def create(self, data):
-        return self.post("/system/user/create", json=data)
-
-    def update(self, data):
-        return self.put("/system/user/update", json=data)
-
-    def delete(self, user_id):
-        return self.request("DELETE", "/system/user/delete", params={"id": user_id})
-
-    def page(self, params):
-        return self.request("GET", "/system/user/page", params=params)
-
-    def get(self, user_id):
-        return self.request("GET", "/system/user/get", params={"id": user_id})
+    resource = "/system/user"
 
     def update_status(self, user_id, status):
-        return self.put("/system/user/update-status", json={"id": user_id, "status": status})
+        """修改用户状态（启用/禁用）。"""
+        return self.put(f"{self.resource}/update-status", json={"id": user_id, "status": status})
 
     def change_status(self, user_id, status):
+        """兼容旧调用名。"""
         return self.update_status(user_id, status)
 
     def reset_password(self, user_id, password):
         """重置用户密码。"""
-        return self.put("/system/user/update-password", json={"id": user_id, "password": password})
+        return self.put(f"{self.resource}/update-password", json={"id": user_id, "password": password})

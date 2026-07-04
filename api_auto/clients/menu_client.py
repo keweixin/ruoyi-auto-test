@@ -8,29 +8,18 @@
 - GET    /system/menu/list-all-simple   菜单简单列表
 数据库表：system_menu(主键 id, type: 1目录 2菜单 3按钮, deleted 逻辑删除)
 """
-from api_auto.base.base_api import BaseApi
+from api_auto.base.crud_client import CrudClient
 
 
-class MenuClient(BaseApi):
-    """菜单管理接口客户端。"""
+class MenuClient(CrudClient):
+    """菜单管理接口客户端。CRUD 继承自 CrudClient，保留 menu 特有的 list。"""
 
-    def create(self, data):
-        return self.post("/system/menu/create", json=data)
-
-    def update(self, data):
-        return self.put("/system/menu/update", json=data)
-
-    def delete(self, menu_id):
-        return self.request("DELETE", "/system/menu/delete", params={"id": menu_id})
+    resource = "/system/menu"
 
     def list(self, params=None):
-        return self.request("GET", "/system/menu/list", params=params or {})
-
-    def get(self, menu_id):
-        return self.request("GET", "/system/menu/get", params={"id": menu_id})
+        """菜单用 list（非分页 page），返回树形列表。"""
+        return self.request("GET", f"{self.resource}/list", params=params or {})
 
     def treeselect(self):
-        return self.request("GET", "/system/menu/list-all-simple")
-
-    def list_all_simple(self):
-        return self.request("GET", "/system/menu/list-all-simple")
+        """菜单下拉树（同 list_all_simple，保留语义化方法名）。"""
+        return self.list_all_simple()

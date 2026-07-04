@@ -23,7 +23,7 @@ class AuthClient(BaseApi):
         if tenant_name:
             data["tenantName"] = tenant_name
         response = self.post("/system/auth/login", json=data)
-        from api_auto.auth.token_registry import TOKEN_REGISTRY
+        from common.token_registry import TOKEN_REGISTRY
         TOKEN_REGISTRY.register_response(response)
         return response
 
@@ -37,7 +37,7 @@ class AuthClient(BaseApi):
             "/system/auth/refresh-token",
             params={"refreshToken": refresh_token},
         )
-        from api_auto.auth.token_registry import TOKEN_REGISTRY
+        from common.token_registry import TOKEN_REGISTRY
         TOKEN_REGISTRY.register_response(response)
         return response
 

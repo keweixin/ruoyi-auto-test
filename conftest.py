@@ -29,7 +29,7 @@ from api_auto.clients.role_client import RoleClient
 from api_auto.clients.menu_client import MenuClient
 from api_auto.clients.permission_client import PermissionClient
 from api_auto.auth.token_manager import TokenManager
-from api_auto.auth.token_registry import TOKEN_REGISTRY
+from common.token_registry import TOKEN_REGISTRY
 from ui_auto.auth.auth_state_manager import AuthStateManager
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

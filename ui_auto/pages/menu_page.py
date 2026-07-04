@@ -7,20 +7,18 @@ from common.config import cfg
 
 
 class MenuPage(BasePage):
-    """菜单管理页。"""
+    """菜单管理页。reset_search/row_exists 继承自 BasePage。"""
 
     URL = "/system/menu"
 
     def open_page(self):
+        """菜单页用"菜单名称"文本作为就绪标志（非 .el-table）。"""
         self.open(cfg.web_url + self.URL)
         self.wait_visible(self.page.get_by_text("菜单名称").first)
 
     def search_by_name(self, name):
         self.page.get_by_placeholder("请输入菜单名称").fill(name)
         self.page.get_by_role("button", name="搜索").click()
-
-    def reset_search(self):
-        self.page.get_by_role("button", name="重置").click()
 
     def add(self, name, menu_type="菜单"):
         """新增菜单。menu_type: 目录/菜单/按钮。"""
@@ -32,9 +30,6 @@ class MenuPage(BasePage):
         if menu_type in ("目录", "菜单"):
             self.form_item_input(dialog, "路由地址").fill(name.replace("_", ""))
         self.dialog_submit()
-
-    def row_exists(self, keyword):
-        return self.table_has_row(keyword)
 
     def open_add_dialog(self):
         return self.open_create_dialog()

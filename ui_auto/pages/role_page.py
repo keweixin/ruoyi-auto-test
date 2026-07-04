@@ -3,24 +3,16 @@
 特点：分配菜单权限用菜单树勾选（el-tree 的 checkbox）。
 """
 from ui_auto.base.base_page import BasePage
-from common.config import cfg
 
 
 class RolePage(BasePage):
-    """角色管理页。"""
+    """角色管理页。open_page/reset_search/row_exists 继承自 BasePage。"""
 
     URL = "/system/role"
-
-    def open_page(self):
-        self.open(cfg.web_url + self.URL)
-        self.wait_visible(self.page.locator(".el-table"))
 
     def search_by_name(self, name):
         self.page.get_by_placeholder("请输入角色名称").fill(name)
         self.page.get_by_role("button", name="搜索").click()
-
-    def reset_search(self):
-        self.page.get_by_role("button", name="重置").click()
 
     def add(self, name, code):
         """新增角色。"""
@@ -30,9 +22,6 @@ class RolePage(BasePage):
         self.form_item_input(dialog, "角色标识").fill(code)
         self.form_item_input(dialog, "显示顺序").fill("1")
         self.dialog_submit()
-
-    def row_exists(self, keyword):
-        return self.table_has_row(keyword)
 
     def assign_menu(self, keyword, menu_names=None):
         """给角色分配菜单权限。仅允许操作本次 auto 测试角色且要求匹配唯一。"""

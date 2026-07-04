@@ -15,13 +15,13 @@ ROLE_API_001~003 采用 YAML 表驱动（data/role_data.yaml 的 create_cases）
 import allure
 import pytest
 
-from common.config import cfg
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail
-from common.allure_utils import attach_text
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_field
+from common.allure_utils import attach_json, attach_text
+from common.environment_utils import get_assignable_menu_ids
 from common.random_utils import gen_name
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
-from common.data_provider import load_create_cases, build_parametrize
+from common.data_provider import build_case_payload, load_create_cases, build_parametrize
 
 
 _ROLE_CASES, _ROLE_IDS = build_parametrize(load_create_cases("role"))
@@ -51,15 +51,16 @@ class TestRoleApi:
         数据来源 data/role_data.yaml 的 create_cases。
         """
         allure.dynamic.title(f"{case['case_id']} {case['desc']}")
+        payload = build_case_payload("role", case)
         if case["setup"] == "duplicate":
-            first = role_client.create(case["payload"]).json()
+            first = role_client.create(payload).json()
             assert_api_ok(first, "前置：第一次创建")
             try:
-                body = role_client.create(case["payload"]).json()
+                body = role_client.create(payload).json()
             finally:
                 role_client.delete(first["data"])
         else:
-            body = role_client.create(case["payload"]).json()
+            body = role_client.create(payload).json()
 
         if case["expect_ok"]:
             assert_api_ok(body, case["desc"])
@@ -131,7 +132,7 @@ class TestRoleApi:
     def test_assign_menu(self, role_client, permission_client):
         rid = self._create_role(role_client)
         try:
-            body = permission_client.assign_role_menu(rid, [1, 2, 3]).json()
+            body = permission_client.assign_role_menu(rid, get_assignable_menu_ids()).json()
             assert_api_ok(body, "分配菜单权限")
         finally:
             role_client.delete(rid)
@@ -141,12 +142,29 @@ class TestRoleApi:
     def test_list_role_menus(self, role_client, permission_client):
         rid = self._create_role(role_client)
         try:
-            menu_ids = [1, 2]
+            menu_ids = get_assignable_menu_ids(2)
             permission_client.assign_role_menu(rid, menu_ids)
             body = permission_client.list_role_menus(rid).json()
             assert_api_ok(body)
             result = set(body["data"])
             assert set(menu_ids).issubset(result), f"菜单未全部分配 实际={result}"
+        finally:
+            role_client.delete(rid)
+
+    @allure.story("权限分配")
+    @allure.title("ROLE_API_013 分配角色数据范围并校验数据库")
+    @pytest.mark.db
+    def test_assign_role_data_scope(self, role_client, permission_client):
+        rid = self._create_role(role_client)
+        try:
+            body = permission_client.assign_role_data_scope(rid, 1).json()
+            assert_api_ok(body, "分配全部数据权限")
+            role = role_client.get(rid).json()
+            attach_json("角色数据权限响应", role)
+            assert_field(role["data"]["dataScope"], 1, "dataScope")
+            db_utils.assert_db_field(
+                "SELECT data_scope FROM system_role WHERE id=%s", (rid,), "data_scope", 1
+            )
         finally:
             role_client.delete(rid)
 

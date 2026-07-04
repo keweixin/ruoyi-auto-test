@@ -19,10 +19,12 @@ import pytest
 from common.config import cfg
 from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail
-from common.allure_utils import attach_text
+from common.allure_utils import attach_json, attach_text
+from common.test_data import valid_role_data
 from common.random_utils import gen_username, gen_mobile
 from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
-from common.data_provider import load_create_cases, build_parametrize
+from common.data_provider import build_case_payload, load_create_cases, build_parametrize
+from common.test_data import valid_user_data
 from api_auto.clients.auth_client import AuthClient
 
 
@@ -37,15 +39,32 @@ class TestUserApi:
         """辅助：创建一个测试用户，返回 (user_id, username, password)。"""
         username = gen_username()
         password = "Test123456"
-        body = user_client.create({
-            "username": username,
-            "password": password,
-            "nickname": "自动用户",
-            "mobile": gen_mobile(),
-            "deptId": 100,
-        }).json()
+        body = user_client.create(valid_user_data(
+            username=username, password=password, mobile=gen_mobile()
+        )).json()
         assert_api_ok(body, "创建用户")
         return body["data"], username, password
+
+    @allure.story("角色分配")
+    @allure.title("USER_API_014 分配角色前后查询用户角色")
+    def test_list_user_roles_before_and_after_assign(
+        self, user_client, role_client, permission_client
+    ):
+        uid, _, _ = self._create_user(user_client)
+        rid = role_client.create(valid_role_data()).json()["data"]
+        try:
+            before = permission_client.list_user_roles(uid).json()
+            assert_api_ok(before, "分配前查询用户角色")
+            permission_client.assign_user_role(uid, [rid])
+            after = permission_client.list_user_roles(uid).json()
+            assert_api_ok(after, "分配后查询用户角色")
+            attach_json("用户角色响应", after)
+            role_ids = set(after["data"])
+            assert rid in role_ids
+        finally:
+            permission_client.assign_user_role(uid, [])
+            user_client.delete(uid)
+            role_client.delete(rid)
 
     @allure.story("新增")
     @pytest.mark.parametrize("case", _USER_CASES, ids=_USER_IDS)
@@ -55,16 +74,17 @@ class TestUserApi:
         数据来源 data/user_data.yaml 的 create_cases，新增用例只需加 YAML 行，无需改代码。
         """
         allure.dynamic.title(f"{case['case_id']} {case['desc']}")
+        payload = build_case_payload("user", case)
         # 重复场景：先创建一条占住 username，再用同 username 再建
         if case["setup"] == "duplicate":
-            first = user_client.create(case["payload"]).json()
+            first = user_client.create(payload).json()
             assert_api_ok(first, "前置：第一次创建")
             try:
-                body = user_client.create(case["payload"]).json()
+                body = user_client.create(payload).json()
             finally:
                 user_client.delete(first["data"])
         else:
-            body = user_client.create(case["payload"]).json()
+            body = user_client.create(payload).json()
 
         if case["expect_ok"]:
             assert_api_ok(body, case["desc"])
@@ -109,10 +129,9 @@ class TestUserApi:
         uid, username, _ = self._create_user(user_client)
         try:
             new_mobile = gen_mobile()
-            body = user_client.update({
-                "id": uid, "username": username, "nickname": "自动用户",
-                "mobile": new_mobile, "deptId": 100
-            }).json()
+            current = user_client.get(uid).json()["data"]
+            current.update({"id": uid, "username": username, "mobile": new_mobile})
+            body = user_client.update(current).json()
             assert_api_ok(body, "编辑手机号")
             # 确认改了
             after = user_client.get(uid).json()["data"]["mobile"]

@@ -33,16 +33,16 @@ class DictPage(BasePage):
     def search_by_name(self, name):
         """按字典名称查询。"""
         self.page.get_by_placeholder("请输入字典名称").fill(name)
-        self.page.get_by_role("button", name="搜索").click()
+        self.table_btn("搜索").click()
 
     def search_by_type(self, type_):
         """按字典类型查询。"""
         self.page.get_by_placeholder("请输入字典类型").fill(type_)
-        self.page.get_by_role("button", name="搜索").click()
+        self.table_btn("搜索").click()
 
     def reset_search(self):
         """点击重置。"""
-        self.page.get_by_role("button", name="重置").click()
+        self.table_btn("重置").click()
 
     def type_name_query_value(self):
         return self.page.get_by_placeholder("请输入字典名称").input_value()
@@ -60,17 +60,14 @@ class DictPage(BasePage):
     # ===== 新增 =====
     def add_type(self, name, type_):
         """新增字典类型。"""
-        self.page.get_by_role("button", name="新增").click()
-        dialog = self.visible_dialog()
-        self.form_item_input(dialog, "字典名称").fill(name)
-        self.form_item_input(dialog, "字典类型").fill(type_)
+        self.table_btn("新增").click()
+        self.visible_dialog()
+        self.dialog_input("请输入字典名称").fill(name)
+        self.dialog_input("请输入参数名称").fill(type_)
         # 状态默认开启，备注可选
-        self.dialog_submit()
+        self.dialog_confirm()
 
     # ===== 操作表格行 =====
-    def row_exists(self, keyword):
-        """表格是否存在含 keyword 的行。"""
-        return self.table_has_row(keyword)
 
     def edit_row(self, keyword, new_name=None):
         """编辑某行。仅允许编辑本次 auto 测试数据且要求匹配唯一。"""

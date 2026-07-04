@@ -1,5 +1,9 @@
 # 字典管理测试数据
 dict:
+  validation_cases:
+    - { case_id: DICT_API_019, field: name, value: "", desc: "字典名称必填" }
+    - { case_id: DICT_API_020, field: type, value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", desc: "字典类型最大长度" }
+    - { case_id: DICT_API_021, field: name, value: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", desc: "字典名称最大长度" }
   # 新建字典类型用到的字段（对齐 DictTypeSaveReqVO：name / type / status / remark，无 sort）
   type_create:
     name_prefix: "auto_dict"

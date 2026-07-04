@@ -64,3 +64,16 @@ def execute(sql, params=None):
         return n
     finally:
         conn.close()
+
+
+def assert_db_exists(sql, params=None):
+    row = query_one(sql, params)
+    assert row is not None, f"数据库未查到预期记录: sql={sql!r} params={params!r}"
+    return row
+
+
+def assert_db_field(sql, params, field, expected):
+    row = assert_db_exists(sql, params)
+    assert row.get(field) == expected, \
+        f"数据库字段 {field} 期望 {expected!r}，实际 {row.get(field)!r}"
+    return row
