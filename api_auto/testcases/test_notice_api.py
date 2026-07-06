@@ -10,10 +10,8 @@
 import allure
 import pytest
 
-from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_response_ok, assert_response_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_page_result, assert_response_ok, assert_response_fail
 from common.random_utils import gen_name
-from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
-from common.test_data import with_created_entity
 
 
 @allure.feature("通知公告接口")
@@ -48,8 +46,7 @@ class TestNoticeApi:
         }).json()["data"]
         try:
             body = assert_response_ok(notice_client.page({"pageNo": 1, "pageSize": 10, "title": title}))
-            assert_schema(body, PAGE_LIST_SCHEMA)
-            rows = body["data"]["list"]
+            rows = assert_page_result(body, min_total=1)["list"]
             assert any(r["id"] == nid and r["title"] == title for r in rows), "未查到本次创建的通知"
         finally:
             notice_client.delete(nid)

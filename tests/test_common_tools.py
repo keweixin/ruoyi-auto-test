@@ -11,7 +11,7 @@ from common.assert_utils import (
     assert_response_ok,
 )
 from common.faker_utils import fake_email, fake_mobile, fake_nickname, fake_remark
-from common.test_data import (
+from data.builders import (
     valid_dept_data,
     valid_post_data,
     valid_role_data,
@@ -39,7 +39,7 @@ def test_faker_helpers_generate_expected_formats():
 
 
 def test_small_data_builders_support_field_overrides(monkeypatch):
-    monkeypatch.setattr("common.test_data.get_root_dept_id", lambda: 100)
+    monkeypatch.setattr("data.builders.get_root_dept_id", lambda: 100)
     assert valid_user_data(mobile="123")["mobile"] == "123"
     assert valid_user_data()["deptId"] == 100
     assert valid_role_data(status=1)["status"] == 1

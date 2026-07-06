@@ -12,7 +12,7 @@ Python · pytest · requests · Playwright · Page Object · YAML · pymysql · 
 ## 项目亮点
 1. **接口与 UI 分层覆盖**：接口验证业务逻辑和数据，UI 验证真实页面操作。
 2. **数据库校验**：验证数据真实落库、状态变化和逻辑删除。
-3. **Token 生命周期管理**：共享 `TokenManager`，支持过期前刷新、业务码 401 自动恢复并限次重试。
+3. **稳定请求与 Token 管理**：GET/HEAD/OPTIONS 遇到瞬时错误时由 urllib3 自动重试2次；共享 `TokenManager` 支持过期刷新和401恢复。
 4. **UI 登录态复用**：`LoginPage` + `AuthStateManager` 统一生成 `storage_state`，失效时自动重新登录。
 5. **环境自清理**：关系表优先清理，主表按本轮唯一前缀兜底；API/UI 签发的 Token 精确登记并在 session 结束时注销。
 6. **Page Object 分层**：页面元素与业务动作封装，UI 测试用例不直接操作裸 `page/locator`。
@@ -85,7 +85,7 @@ flowchart TD
 
 ## 自动化范围
 - **API 接口**：103 条（10 模块：登录/部门/字典/菜单/岗位/角色/用户/日志/个人中心/通知公告）
-- **UI 自动化**：70 条（含 4 条 REAL 纯 UI 操作用例）
+- **UI 自动化**：70 条（含 9 条 REAL 真实 UI 操作用例）
 - **接口联动 / DB 校验**：20 条
 - **框架单测**：12 条（BaseApi HTTP 客户端 + common 工具）
 - **合计**：**205** 条测试实例
@@ -119,6 +119,24 @@ pytest integration                 # 只跑联动
 pytest                             # 全量
 allure serve reports/allure-results
 ```
+
+Windows 本地完整启动顺序：
+
+```powershell
+cd E:\ruoyi\script\docker
+docker compose up -d mysql redis
+
+cd E:\ruoyi
+java -jar yudao-server\target\yudao-server.jar --spring.profiles.active=local
+
+cd E:\ruoyi\yudao-ui\yudao-admin-vue3
+npm run dev
+
+cd E:\ruoyi\test\ruoyi-auto-test
+pytest -v
+```
+
+初次阅读项目请先看：`docs/初学者代码导读.md`。
 
 ## JMeter 性能测试
 文档：`docs/JMeter性能测试操作文档.md`  

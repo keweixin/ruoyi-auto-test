@@ -11,7 +11,6 @@ import os
 
 from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from common.random_utils import gen_name
-from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
 from common.yaml_utils import load_case_list
 
 
@@ -58,7 +57,6 @@ class TestMenuApi:
     @pytest.mark.smoke
     def test_list_menu(self, menu_client):
         body = menu_client.list().json()
-        assert_schema(body, LIST_DATA_SCHEMA)
         assert_api_ok(body)
         assert isinstance(body["data"], list) and len(body["data"]) > 0
 

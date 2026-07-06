@@ -1,6 +1,5 @@
 """登记并回收本轮自动化测试签发的 access token。"""
 import json
-import threading
 
 import requests
 
@@ -10,12 +9,10 @@ from common.logger import log
 class TokenRegistry:
     def __init__(self):
         self._tokens = set()
-        self._lock = threading.Lock()
 
     def register(self, token):
         if token:
-            with self._lock:
-                self._tokens.add(str(token))
+            self._tokens.add(str(token))
 
     def register_response(self, response):
         try:
@@ -77,9 +74,8 @@ class TokenRegistry:
         return parsed
 
     def revoke_all(self, base_url, tenant_id):
-        with self._lock:
-            tokens = tuple(self._tokens)
-            self._tokens.clear()
+        tokens = tuple(self._tokens)
+        self._tokens.clear()
         api_root = base_url.rstrip("/")
         if not api_root.endswith("/admin-api"):
             api_root += "/admin-api"

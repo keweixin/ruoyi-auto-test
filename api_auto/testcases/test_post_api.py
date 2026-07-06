@@ -11,12 +11,11 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_page_result, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
-from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
-from common.test_data import with_created_entity
+from data.builders import valid_post_data
 
 
 _POST_CASES, _POST_IDS = build_parametrize(load_create_cases("post"))
@@ -70,9 +69,7 @@ class TestPostApi:
         new_id = post_client.create({"name": name, "code": code, "sort": 1, "status": 0}).json()["data"]
         try:
             body = post_client.page({"pageNo": 1, "pageSize": 10, "name": name}).json()
-            assert_schema(body, PAGE_LIST_SCHEMA)
-            assert_api_ok(body)
-            rows = body["data"]["list"]
+            rows = assert_page_result(body, min_total=1)["list"]
             assert any(r["id"] == new_id and r["name"] == name for r in rows), "未查到本次创建的岗位"
         finally:
             post_client.delete(new_id)
@@ -96,20 +93,28 @@ class TestPostApi:
     @allure.story("状态")
     @allure.title("POST_API_006 禁用岗位成功")
     def test_disable_post(self, post_client):
-        with with_created_entity(post_client, "post") as ent:
-            post = post_client.get(ent.id).json()["data"]
+        created = assert_response_ok(post_client.create(valid_post_data()), "创建岗位")
+        post_id = created["data"]
+        try:
+            post = post_client.get(post_id).json()["data"]
             post["status"] = 1
             assert_api_ok(post_client.update(post).json(), "禁用岗位")
+        finally:
+            post_client.delete(post_id)
 
     @allure.story("状态")
     @allure.title("POST_API_007 启用岗位成功")
     def test_enable_post(self, post_client):
-        with with_created_entity(post_client, "post") as ent:
-            post = post_client.get(ent.id).json()["data"]
+        created = assert_response_ok(post_client.create(valid_post_data()), "创建岗位")
+        post_id = created["data"]
+        try:
+            post = post_client.get(post_id).json()["data"]
             post["status"] = 1
             post_client.update(post).json()
             post["status"] = 0
             assert_api_ok(post_client.update(post).json(), "启用岗位")
+        finally:
+            post_client.delete(post_id)
 
     @allure.story("删除")
     @allure.title("POST_API_008 删除岗位成功")

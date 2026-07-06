@@ -16,7 +16,6 @@ import os
 from common.config import cfg
 from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from api_auto.clients.auth_client import AuthClient
-from common.schema_utils import assert_schema, LOGIN_SCHEMA, GET_INFO_SCHEMA
 from common.yaml_utils import load_case_list
 
 
@@ -41,10 +40,12 @@ class TestAuthApi:
         client = AuthClient(cfg.base_url, cfg.tenant_id)
         body = client.login(username, password).json()
         if expect_ok:
-            assert_schema(body, LOGIN_SCHEMA)
             assert_api_ok(body, "正确登录")
-            token = body.get("data", {}).get("accessToken")
+            data = body.get("data", {})
+            token = data.get("accessToken")
             assert token, "token 为空"
+            assert data.get("refreshToken"), "refreshToken 为空"
+            assert isinstance(data.get("expiresTime"), int), "expiresTime 应为整数"
         else:
             assert_api_fail(body, "错误登录")
 
@@ -53,9 +54,12 @@ class TestAuthApi:
     @pytest.mark.smoke
     def test_get_info_success(self, auth_client):
         body = auth_client.get_info().json()
-        assert_schema(body, GET_INFO_SCHEMA)
         assert_api_ok(body)
-        assert body["data"]["user"], "用户信息为空"
+        data = body["data"]
+        assert data["user"], "用户信息为空"
+        assert isinstance(data["permissions"], list)
+        assert isinstance(data["roles"], list)
+        assert isinstance(data["menus"], list)
 
     @allure.story("鉴权")
     @allure.title("AUTH_API_006 未携带 token 访问用户信息失败")

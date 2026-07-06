@@ -13,7 +13,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile, gen_username
-from common.test_data import create_role, create_user, DEFAULT_PASSWORD
+from data.builders import valid_role_data, valid_user_data, DEFAULT_PASSWORD
 
 
 @allure.feature("纯接口联动-角色权限")
@@ -21,9 +21,10 @@ from common.test_data import create_role, create_user, DEFAULT_PASSWORD
 class TestRolePermissionFlow:
 
     def _create_role(self, role_client):
-        """辅助：创建测试角色，返回 (rid, name)。复用 common.test_data.create_role。"""
-        ent = create_role(role_client)
-        return ent.id, ent.name
+        """创建测试角色，返回角色 ID 和名称。"""
+        data = valid_role_data()
+        body = assert_response_ok(role_client.create(data), "创建测试角色")
+        return body["data"], data["name"]
 
     def _menu_ids(self, menu_client, size=3):
         body = assert_response_ok(menu_client.list_all_simple(), "查询可分配菜单")
@@ -95,13 +96,13 @@ class TestRolePermissionFlow:
         try:
             assert_api_ok(permission_client.assign_role_menu(rid, menu_ids).json())
             assert set(menu_ids).issubset(set(permission_client.get_role_menu_ids(rid)))
-            uid = user_client.create({
-                "username": username,
-                "nickname": "权限测试",
-                "password": DEFAULT_PASSWORD,
-                "mobile": gen_mobile(),
-                "deptId": 100,
-            }).json()["data"]
+            user_data = valid_user_data(
+                username=username,
+                nickname="权限测试",
+                password=DEFAULT_PASSWORD,
+                mobile=gen_mobile(),
+            )
+            uid = user_client.create(user_data).json()["data"]
             assert_api_ok(permission_client.assign_user_role(uid, [rid]).json())
             ur_rows = db_utils.query_all(
                 "SELECT role_id FROM system_user_role WHERE user_id=%s AND deleted=0",

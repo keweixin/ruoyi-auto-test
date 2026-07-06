@@ -18,13 +18,12 @@ import pytest
 
 from common.config import cfg
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_page_result, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_json, attach_text
-from common.test_data import valid_role_data
+from data.builders import valid_role_data
 from common.random_utils import gen_username, gen_mobile
-from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
-from common.test_data import valid_user_data, create_user, DEFAULT_RESET_PASSWORD
+from data.builders import valid_user_data, DEFAULT_RESET_PASSWORD
 from api_auto.clients.auth_client import AuthClient
 
 
@@ -36,9 +35,10 @@ _USER_CASES, _USER_IDS = build_parametrize(load_create_cases("user"))
 class TestUserApi:
 
     def _create_user(self, user_client):
-        """辅助：创建一个测试用户，返回 (user_id, username, password)。复用 common.test_data.create_user。"""
-        ent = create_user(user_client)
-        return ent.id, ent.name, ent.extra["password"]
+        """创建测试用户，返回用户 ID、用户名和密码。"""
+        data = valid_user_data()
+        body = assert_response_ok(user_client.create(data), "创建测试用户")
+        return body["data"], data["username"], data["password"]
 
     @allure.story("角色分配")
     @allure.title("USER_API_014 分配角色前后查询用户角色")
@@ -96,9 +96,7 @@ class TestUserApi:
         uid, username, _ = self._create_user(user_client)
         try:
             body = user_client.page({"pageNo": 1, "pageSize": 10, "username": username}).json()
-            assert_schema(body, PAGE_LIST_SCHEMA)
-            assert_api_ok(body)
-            assert body["data"]["total"] >= 1, "按用户名未查到"
+            assert_page_result(body, min_total=1)
         finally:
             user_client.delete(uid)
 

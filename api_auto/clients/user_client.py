@@ -21,10 +21,6 @@ class UserClient(CrudClient):
         """修改用户状态（启用/禁用）。"""
         return self.put(f"{self.resource}/update-status", json={"id": user_id, "status": status})
 
-    def change_status(self, user_id, status):
-        """兼容旧调用名。"""
-        return self.update_status(user_id, status)
-
     def reset_password(self, user_id, password):
         """重置用户密码。"""
         return self.put(f"{self.resource}/update-password", json={"id": user_id, "password": password})

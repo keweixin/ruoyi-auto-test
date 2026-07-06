@@ -11,7 +11,7 @@ import pytest
 
 from common.assert_utils import assert_api_ok, assert_response_ok
 from common.random_utils import gen_name
-from common.test_data import valid_dept_data, valid_post_data, valid_user_data
+from data.builders import valid_dept_data, valid_post_data, valid_user_data
 from common.db_utils import query_one
 from ui_auto.pages.dept_page import DeptPage
 from ui_auto.pages.dict_page import DictPage

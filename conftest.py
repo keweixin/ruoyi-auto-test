@@ -44,14 +44,13 @@ def _safe_artifact_name(node_name):
     """把 pytest 用例名转成安全文件名，避免参数化用例名包含路径特殊字符。"""
     return re.sub(r"[^0-9A-Za-z_.-]+", "_", node_name).strip("_") or "test"
 
-def _client_with_token_manager(client_class, token_manager):
-    return client_class(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
-
-
+# ===== 全局清理 =====
 @pytest.fixture(autouse=True)
-def cleanup_after_test():
-    """每条用例结束后兜底清理本轮 TEST_RUN_PREFIX 测试数据。"""
+def cleanup_after_test(request):
+    """业务测试结束后清理数据；框架单测不连接真实数据库。"""
     yield
+    if request.node.get_closest_marker("framework"):
+        return
     from common.cleanup_utils import cleanup_auto_data
     cleanup_auto_data()
 
@@ -84,6 +83,7 @@ def token_manager():
     )
 
 
+# ===== API fixture：测试参数名与这里的函数名对应 =====
 @pytest.fixture(scope="session")
 def admin_token(token_manager):
     """兼容仍需裸 token 的测试；新 Client 应直接依赖 token_manager。"""
@@ -100,64 +100,65 @@ def logout_token():
 
 @pytest.fixture
 def auth_client(token_manager):
-    return _client_with_token_manager(AuthClient, token_manager)
+    return AuthClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def dict_client(token_manager):
-    return _client_with_token_manager(DictClient, token_manager)
+    return DictClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def dept_client(token_manager):
-    return _client_with_token_manager(DeptClient, token_manager)
+    return DeptClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def post_client(token_manager):
-    return _client_with_token_manager(PostClient, token_manager)
+    return PostClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def user_client(token_manager):
-    return _client_with_token_manager(UserClient, token_manager)
+    return UserClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def role_client(token_manager):
-    return _client_with_token_manager(RoleClient, token_manager)
+    return RoleClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def menu_client(token_manager):
-    return _client_with_token_manager(MenuClient, token_manager)
+    return MenuClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def permission_client(token_manager):
-    return _client_with_token_manager(PermissionClient, token_manager)
+    return PermissionClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def operate_log_client(token_manager):
-    return _client_with_token_manager(OperateLogClient, token_manager)
+    return OperateLogClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def login_log_client(token_manager):
-    return _client_with_token_manager(LoginLogClient, token_manager)
+    return LoginLogClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def profile_client(token_manager):
-    return _client_with_token_manager(ProfileClient, token_manager)
+    return ProfileClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
 @pytest.fixture
 def notice_client(token_manager):
-    return _client_with_token_manager(NoticeClient, token_manager)
+    return NoticeClient(cfg.base_url, cfg.tenant_id, token_manager=token_manager)
 
 
+# ===== Playwright fixture =====
 @pytest.fixture(scope="session")
 def playwright_instance():
     with sync_playwright() as p:

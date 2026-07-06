@@ -1,5 +1,4 @@
 """RuoYi-Vue-Pro access token 生命周期管理。"""
-import threading
 import time
 
 from common.logger import log
@@ -30,7 +29,6 @@ class TokenManager:
         self.access_token = None
         self.refresh_token = None
         self.expires_time_ms = 0
-        self._lock = threading.RLock()
 
     def _auth_client(self):
         # 延迟导入，避免 AuthClient -> BaseApi -> TokenManager 的循环依赖。
@@ -82,32 +80,29 @@ class TokenManager:
 
     def get_access_token(self):
         """返回有效 token；临近过期时优先刷新，刷新失败则重新登录。"""
-        with self._lock:
-            if self.access_token and not self._is_expiring():
-                return self.access_token
-            if self.refresh_token:
-                try:
-                    self._refresh()
-                    return self.access_token
-                except AuthenticationError as exc:
-                    log.warning("refresh token 不可用，回退重新登录: %s", exc)
-            self._login()
+        if self.access_token and not self._is_expiring():
             return self.access_token
+        if self.refresh_token:
+            try:
+                self._refresh()
+                return self.access_token
+            except AuthenticationError as exc:
+                log.warning("refresh token 不可用，回退重新登录: %s", exc)
+        self._login()
+        return self.access_token
 
     def refresh_access_token(self):
         """主动刷新 token；无 refresh token 时重新登录。"""
-        with self._lock:
-            if self.refresh_token:
-                try:
-                    self._refresh()
-                    return self.access_token
-                except AuthenticationError as exc:
-                    log.warning("主动刷新失败，回退重新登录: %s", exc)
-            self._login()
-            return self.access_token
+        if self.refresh_token:
+            try:
+                self._refresh()
+                return self.access_token
+            except AuthenticationError as exc:
+                log.warning("主动刷新失败，回退重新登录: %s", exc)
+        self._login()
+        return self.access_token
 
     def invalidate_access_token(self):
         """标记 access token 失效，让下一次请求刷新或重新登录。"""
-        with self._lock:
-            self.access_token = None
-            self.expires_time_ms = 0
+        self.access_token = None
+        self.expires_time_ms = 0

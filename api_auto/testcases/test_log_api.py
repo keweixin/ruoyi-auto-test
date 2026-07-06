@@ -11,8 +11,7 @@
 import allure
 import pytest
 
-from common.assert_utils import assert_api_ok, assert_response_ok, assert_response_fail
-from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
+from common.assert_utils import assert_api_ok, assert_page_result, assert_response_ok, assert_response_fail
 
 
 @allure.feature("日志查询接口")
@@ -25,9 +24,7 @@ class TestLogApi:
     def test_operate_log_page(self, operate_log_client):
         """操作日志分页查询：总数>0、列表非空、字段结构正确。"""
         body = operate_log_client.page({"pageNo": 1, "pageSize": 5}).json()
-        assert_schema(body, PAGE_LIST_SCHEMA)
-        assert_api_ok(body)
-        data = body["data"]
+        data = assert_page_result(body, min_total=1)
         assert data["total"] > 0, "操作日志总数应大于 0（系统运行有操作记录）"
         assert len(data["list"]) > 0, "操作日志列表不应为空"
         # 校验关键字段存在
@@ -52,9 +49,7 @@ class TestLogApi:
     def test_login_log_page(self, login_log_client):
         """登录日志分页查询：总数>0（测试登录会产生记录）、列表非空。"""
         body = login_log_client.page({"pageNo": 1, "pageSize": 5}).json()
-        assert_schema(body, PAGE_LIST_SCHEMA)
-        assert_api_ok(body)
-        data = body["data"]
+        data = assert_page_result(body, min_total=1)
         assert data["total"] > 0, "登录日志总数应大于 0（测试登录会产生记录）"
         assert len(data["list"]) > 0, "登录日志列表不应为空"
         first = data["list"][0]

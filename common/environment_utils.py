@@ -1,10 +1,7 @@
 """按业务含义查询测试环境中的稳定基础数据，避免硬编码 ID。"""
-from functools import lru_cache
-
 from common import db_utils
 
 
-@lru_cache(maxsize=None)
 def get_root_dept_id():
     row = db_utils.query_one(
         "SELECT id FROM system_dept WHERE parent_id=0 AND deleted=0 ORDER BY id LIMIT 1"

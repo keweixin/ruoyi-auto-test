@@ -13,7 +13,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_mobile, gen_username
-from common.test_data import create_user, DEFAULT_RESET_PASSWORD, DEFAULT_PASSWORD
+from data.builders import valid_user_data, DEFAULT_RESET_PASSWORD, DEFAULT_PASSWORD
 from api_auto.clients.auth_client import AuthClient
 from common.config import cfg
 
@@ -23,9 +23,10 @@ from common.config import cfg
 class TestUserFlow:
 
     def _create_user(self, user_client, nickname="联动用户", password=DEFAULT_PASSWORD):
-        """辅助：创建测试用户，返回 (uid, username, password)。复用 common.test_data.create_user。"""
-        ent = create_user(user_client, nickname=nickname, password=password)
-        return ent.id, ent.name, ent.extra["password"]
+        """创建测试用户，返回用户 ID、用户名和密码。"""
+        data = valid_user_data(nickname=nickname, password=password)
+        body = assert_response_ok(user_client.create(data), "创建测试用户")
+        return body["data"], data["username"], data["password"]
 
     @allure.title("USER_FLOW_001 接口创建用户 → 接口查询 → DB 校验 → 清理")
     def test_api_create_api_db_verify(self, user_client):
@@ -59,7 +60,7 @@ class TestUserFlow:
     def test_api_disable_login_fail(self, user_client):
         uid, username, password = self._create_user(user_client, nickname="禁用测试")
         try:
-            assert_api_ok(user_client.change_status(uid, 1).json())
+            assert_api_ok(user_client.update_status(uid, 1).json())
             body = assert_response_fail(AuthClient(cfg.base_url, cfg.tenant_id).login(username, password), "禁用用户登录")
         finally:
             assert_api_ok(user_client.delete(uid).json())
@@ -68,8 +69,8 @@ class TestUserFlow:
     def test_api_enable_login_success(self, user_client):
         uid, username, _ = self._create_user(user_client, nickname="启用测试")
         try:
-            assert_api_ok(user_client.change_status(uid, 1).json())
-            assert_api_ok(user_client.change_status(uid, 0).json())
+            assert_api_ok(user_client.update_status(uid, 1).json())
+            assert_api_ok(user_client.update_status(uid, 0).json())
             row = db_utils.query_one("SELECT status FROM system_users WHERE id=%s", (uid,))
             assert row and row["status"] == 0, "状态未恢复为启用"
         finally:

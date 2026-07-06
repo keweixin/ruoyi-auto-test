@@ -7,7 +7,7 @@ import pytest
 
 from common.assert_utils import assert_api_ok, assert_not_found
 from common.random_utils import gen_name
-from common.test_data import create_post
+from data.builders import valid_post_data
 from ui_auto.pages.post_page import PostPage
 
 
@@ -16,9 +16,11 @@ from ui_auto.pages.post_page import PostPage
 class TestPostUi:
 
     def _create_post(self, post_client, status=0):
-        """辅助：创建测试岗位，返回 (post_id, name, code)。复用 common.test_data.create_post。"""
-        ent = create_post(post_client, status=status)
-        return ent.id, ent.name, ent.code
+        """通过 API 创建测试岗位，返回岗位 ID、名称和编码。"""
+        data = valid_post_data(status=status)
+        body = post_client.create(data).json()
+        assert_api_ok(body, "创建测试岗位")
+        return body["data"], data["name"], data["code"]
 
     @allure.title("POST_UI_001 进入岗位管理页面成功")
     def test_open_post_page(self, page):

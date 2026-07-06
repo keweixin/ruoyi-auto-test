@@ -12,7 +12,7 @@ import pytest
 
 from common.config import cfg
 from common.assert_utils import assert_api_ok, assert_api_fail, assert_response_ok, assert_response_fail
-from common.test_data import DEFAULT_PASSWORD
+from data.builders import DEFAULT_PASSWORD
 from api_auto.clients.auth_client import AuthClient
 
 

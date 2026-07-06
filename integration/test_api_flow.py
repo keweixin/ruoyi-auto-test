@@ -13,7 +13,7 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name, gen_mobile, gen_username
-from common.test_data import DEFAULT_PASSWORD
+from data.builders import DEFAULT_PASSWORD
 
 
 @allure.feature("纯接口联动")

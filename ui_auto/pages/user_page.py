@@ -3,7 +3,7 @@
 特点：含部门树、角色多选、状态开关、重置密码弹窗。
 """
 from ui_auto.base.base_page import BasePage
-from common.test_data import DEFAULT_PASSWORD
+from data.builders import DEFAULT_PASSWORD
 
 
 class UserPage(BasePage):

@@ -6,7 +6,7 @@ import allure
 import pytest
 
 from common.assert_utils import assert_api_ok, assert_not_found
-from common.test_data import create_user, DEFAULT_RESET_PASSWORD
+from data.builders import valid_user_data, DEFAULT_RESET_PASSWORD
 from ui_auto.pages.user_page import UserPage
 
 
@@ -15,11 +15,14 @@ from ui_auto.pages.user_page import UserPage
 class TestUserUi:
 
     def _create_user(self, user_client, status=0):
-        """辅助：创建测试用户，返回 (uid, username, mobile)。复用 common.test_data.create_user。"""
-        ent = create_user(user_client)
+        """通过 API 创建测试用户，返回用户 ID、用户名和手机号。"""
+        data = valid_user_data()
+        body = user_client.create(data).json()
+        assert_api_ok(body, "创建测试用户")
+        user_id = body["data"]
         if status != 0:
-            assert_api_ok(user_client.update_status(ent.id, status).json())
-        return ent.id, ent.name, ent.extra["mobile"]
+            assert_api_ok(user_client.update_status(user_id, status).json())
+        return user_id, data["username"], data["mobile"]
 
     @allure.title("USER_UI_001 进入用户管理页面成功")
     def test_open_user_page(self, page):

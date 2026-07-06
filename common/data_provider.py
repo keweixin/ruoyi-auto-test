@@ -11,7 +11,7 @@ import os
 import copy
 
 from common.yaml_utils import load_case_list
-from common.test_data import valid_dept_data, valid_post_data, valid_role_data, valid_user_data
+from data.builders import valid_dept_data, valid_post_data, valid_role_data, valid_user_data
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 

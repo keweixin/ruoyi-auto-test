@@ -1,7 +1,6 @@
 """通过 LoginPage 创建、复用并校验 Playwright storage_state。"""
 import json
 import os
-import threading
 from urllib.parse import urlparse
 
 from playwright.sync_api import Error as PlaywrightError
@@ -19,28 +18,26 @@ class AuthStateManager:
         self.browser = browser
         self.state_path = str(state_path)
         self.config = config
-        self._lock = threading.RLock()
 
     def create_state(self):
         """调用 LoginPage 登录并写入可复用的 storage_state。"""
-        with self._lock:
-            os.makedirs(os.path.dirname(self.state_path), exist_ok=True)
-            context = self.browser.new_context()
-            page = context.new_page()
-            try:
-                login_page = LoginPage(page, self.config.web_url)
-                login_page.open()
-                login_page.login(
-                    self.config.admin_user,
-                    self.config.admin_pwd,
-                    self.config.tenant_name,
-                )
-                login_page.wait_logged_in()
-                context.storage_state(path=self.state_path)
-                TOKEN_REGISTRY.register_storage_state(self.state_path)
-                log.info("UI 登录态已写入: %s", self.state_path)
-            finally:
-                context.close()
+        os.makedirs(os.path.dirname(self.state_path), exist_ok=True)
+        context = self.browser.new_context()
+        page = context.new_page()
+        try:
+            login_page = LoginPage(page, self.config.web_url)
+            login_page.open()
+            login_page.login(
+                self.config.admin_user,
+                self.config.admin_pwd,
+                self.config.tenant_name,
+            )
+            login_page.wait_logged_in()
+            context.storage_state(path=self.state_path)
+            TOKEN_REGISTRY.register_storage_state(self.state_path)
+            log.info("UI 登录态已写入: %s", self.state_path)
+        finally:
+            context.close()
         return self.state_path
 
     def ensure_state(self):

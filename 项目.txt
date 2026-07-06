@@ -1,0 +1,1628 @@
+可以，我们重新制定一套**更适合你现在基础的项目讲解计划**。之前的问题是：我直接从 `BaseApi`、`TokenManager` 这些核心代码开始讲，虽然内容没错，但你还没有完全建立“项目地图”和“代码运行链路”，所以听起来会断。
+
+接下来我们换一种方式：**先讲怎么跑起来，再讲请求怎么流动，再讲每个文件为什么存在，最后再逐行讲代码。** 🧱
+
+---
+
+# 一、重新定义讲解目标
+
+这套计划不是为了让你“听过一遍”，而是为了让你做到 4 个结果：
+
+1. **能看懂项目目录**
+   看到 `api_auto`、`ui_auto`、`common`、`integration`，知道每个目录干什么。
+
+2. **能看懂代码调用链**
+   知道一条接口用例是怎么从 `test_xxx.py` 跑到 `BaseApi.request()`，再真正发请求的。
+
+3. **能自己讲项目**
+   面试官问项目架构、token、断言、fixture、数据库校验、UI、Jenkins，你能按逻辑回答。
+
+4. **能定位问题**
+   用例失败时，你知道该看配置、token、请求、响应、断言、数据库、截图、Trace 还是 Jenkins 日志。
+
+---
+
+# 二、之前讲解为什么你会觉得断
+
+主要有 4 个原因。
+
+第一，我直接进入了核心源码，但你还没完全掌握项目运行顺序。比如讲 `BaseApi` 时，你可能还不知道它是被谁调用的。
+
+第二，我把代码拆成了很多小块，虽然每行解释了，但缺少“从测试用例到请求发送”的完整故事线。
+
+第三，我默认你已经理解了一些基础概念，比如继承、fixture、Session、YAML 参数化、token 生命周期，但你现在需要更慢、更细。
+
+第四，我没有按“项目新手视角”来排顺序。真正适合你的顺序应该是：
+
+```text
+先知道项目怎么跑
+再知道目录怎么分
+再知道一条用例怎么执行
+再讲 BaseApi
+再讲 TokenManager
+再讲具体模块用例
+最后讲面试表达
+```
+
+所以这次重新来。
+
+---
+
+# 三、新的讲解方法
+
+后面每一讲都固定用这个格式：
+
+```text
+1. 这一讲解决什么问题
+2. 这个文件/模块在项目里的位置
+3. 先看完整执行链路
+4. 再看核心代码整体
+5. 再逐行讲代码
+6. 讲完后画流程图
+7. 总结面试怎么说
+8. 给你检查题
+```
+
+以后讲代码，不再一上来拆碎，而是先给你一条完整链路，比如：
+
+```text
+test_user_api.py
+    ↓
+UserClient
+    ↓
+CrudClient
+    ↓
+BaseApi
+    ↓
+requests
+    ↓
+RuoYi 后端
+    ↓
+response
+    ↓
+assert_utils
+```
+
+你先知道这条线，再逐行看代码，就不会断。
+
+---
+
+# 四、完整项目讲解计划
+
+我建议整个项目分成 **10 大阶段，42 讲**。不要嫌多，你基础比较差，必须拆细。每一讲只解决一个核心问题。
+
+---
+
+# 第 0 阶段：先把项目跑起来，不讲源码
+
+这一阶段先解决：**这个项目怎么启动、怎么执行、结果在哪里看。**
+
+## 第 1 讲：项目整体地图
+
+讲解内容：
+
+```text
+ruoyi-auto-test/
+├── api_auto
+├── ui_auto
+├── integration
+├── common
+├── data
+├── docs
+├── reports
+├── screenshots
+├── traces
+├── logs
+├── pytest.ini
+├── conftest.py
+├── requirements.txt
+└── Jenkinsfile
+```
+
+你要掌握：
+
+| 目录            | 作用               |
+| ------------- | ---------------- |
+| `api_auto`    | 接口自动化            |
+| `ui_auto`     | UI 自动化           |
+| `integration` | 接口联动和数据库校验       |
+| `common`      | 公共工具层            |
+| `data`        | 配置和测试数据          |
+| `docs`        | 项目文档             |
+| `reports`     | Allure 报告        |
+| `screenshots` | UI 失败截图          |
+| `traces`      | Playwright Trace |
+| `logs`        | 日志               |
+
+这一讲目标：
+
+> 你能用自己的话讲清楚项目分几层，每层干什么。
+
+---
+
+## 第 2 讲：项目运行前需要哪些环境
+
+讲解内容：
+
+```text
+RuoYi 后端
+RuoYi 前端
+MySQL
+Redis
+Python 虚拟环境
+依赖包
+Playwright 浏览器
+Allure
+```
+
+你要掌握：
+
+```text
+为什么接口测试需要后端服务？
+为什么 UI 测试需要前端页面？
+为什么需要 MySQL？
+为什么需要 Redis？
+为什么 Playwright 要安装浏览器？
+```
+
+这一讲不讲代码，只讲环境依赖。
+
+---
+
+## 第 3 讲：配置文件怎么影响项目运行
+
+重点文件：
+
+```text
+data/env.example.yaml
+data/env.yaml
+common/config.py
+```
+
+讲解内容：
+
+```text
+base_url 是什么
+web_url 是什么
+tenant_id 是什么
+admin_user 是什么
+admin_pwd 是什么
+db 配置是什么
+为什么 env.yaml 不提交 Git
+```
+
+你要掌握：
+
+> 项目不是把账号密码和地址写死在代码里，而是从配置里读取。
+
+---
+
+## 第 4 讲：pytest 是怎么找到你的用例的
+
+重点文件：
+
+```text
+pytest.ini
+```
+
+讲解内容：
+
+```text
+testpaths
+python_files
+python_classes
+python_functions
+markers
+addopts
+alluredir
+```
+
+你要掌握：
+
+```text
+为什么测试文件要叫 test_xxx.py
+为什么测试类叫 TestXxx
+为什么测试方法叫 test_xxx
+pytest -m api 是怎么实现的
+pytest api_auto/testcases 是怎么执行的
+```
+
+---
+
+## 第 5 讲：第一次运行项目，看结果在哪里
+
+讲解内容：
+
+```bash
+pytest api_auto/testcases -m api
+pytest ui_auto/testcases -m ui
+pytest integration -m flow
+pytest --alluredir=reports/allure-results
+allure serve reports/allure-results
+```
+
+你要掌握：
+
+```text
+控制台怎么看 passed / failed
+Allure 原始结果在哪里
+Allure 报告怎么看
+失败日志在哪里
+截图在哪里
+Trace 在哪里
+```
+
+---
+
+# 第 1 阶段：先打通一条 API 用例执行链路
+
+这一阶段只解决一个问题：
+
+> 一条接口用例到底是怎么跑起来的？
+
+---
+
+## 第 6 讲：一条登录用例的完整执行链路
+
+重点文件：
+
+```text
+api_auto/testcases/test_auth_api.py
+api_auto/clients/auth_client.py
+api_auto/base/base_api.py
+common/assert_utils.py
+```
+
+讲解顺序：
+
+```text
+test_login()
+    ↓
+AuthClient.login()
+    ↓
+BaseApi.post()
+    ↓
+BaseApi.request()
+    ↓
+requests.Session.request()
+    ↓
+response.json()
+    ↓
+assert_api_ok / assert_api_fail
+```
+
+这一讲先不逐行讲所有代码，只把主链路彻底走通。
+
+---
+
+## 第 7 讲：`AuthClient` 逐行讲解
+
+重点文件：
+
+```text
+api_auto/clients/auth_client.py
+```
+
+讲解内容：
+
+```text
+login()
+logout()
+refresh_token()
+get_permission_info()
+get_info()
+```
+
+这一讲要回答：
+
+```text
+登录接口为什么放在 AuthClient？
+为什么 login 返回 response，而不是直接返回 token？
+为什么 refresh_token 用 params？
+为什么 get_info 可以验证 token 是否有效？
+```
+
+---
+
+## 第 8 讲：`test_auth_api.py` 第一部分：登录参数化
+
+重点文件：
+
+```text
+api_auto/testcases/test_auth_api.py
+data/login_data.yaml
+common/yaml_utils.py
+```
+
+讲解内容：
+
+```text
+_LOGIN_CASES 是怎么来的
+pytest.mark.parametrize 是怎么生成多条用例的
+case_id 有什么用
+$ADMIN_USER 怎么替换成真实账号
+expect_ok 怎么控制成功/失败断言
+```
+
+这一讲只讲登录参数化，不讲 logout、refresh。
+
+---
+
+## 第 9 讲：`test_auth_api.py` 第二部分：鉴权测试
+
+讲解内容：
+
+```text
+获取用户信息成功
+未带 token 访问失败
+错误 token 访问失败
+logout 后 token 失效
+refreshToken 刷新
+401 自动刷新重试
+admin_token fixture
+```
+
+这一讲重点讲测试设计，不急着深挖 `TokenManager`。
+
+---
+
+# 第 2 阶段：彻底讲懂请求封装层
+
+这一阶段解决：
+
+> 为什么你的项目不是裸写 requests？
+
+---
+
+## 第 10 讲：`BaseApi` 总体设计，不逐行
+
+重点文件：
+
+```text
+api_auto/base/base_api.py
+```
+
+先讲整体流程：
+
+```text
+Client 调 self.post()
+    ↓
+BaseApi.post()
+    ↓
+BaseApi.request()
+    ↓
+拼 URL
+    ↓
+生成 headers
+    ↓
+脱敏日志
+    ↓
+Allure 附件
+    ↓
+_send()
+    ↓
+401 判断
+    ↓
+返回 response
+```
+
+你要先理解 `BaseApi` 是干什么的，再逐行看代码。
+
+---
+
+## 第 11 讲：`BaseApi` 第 1 部分逐行讲解：初始化
+
+讲解范围：
+
+```text
+导包
+常量
+ApiRequestError
+__init__()
+_build_session()
+close()
+__enter__()
+__exit__()
+set_token()
+```
+
+这一讲重点：
+
+```text
+/admin-api 前缀怎么处理
+tenant-id 怎么保存
+timeout 是什么
+Session 是什么
+为什么只重试 GET/HEAD/OPTIONS
+set_token 为什么会停用 TokenManager
+```
+
+---
+
+## 第 12 讲：`BaseApi` 第 2 部分逐行讲解：headers 和请求发送
+
+讲解范围：
+
+```text
+_is_unauthorized()
+get_headers()
+request()
+_send()
+get()
+post()
+put()
+delete()
+```
+
+这一讲重点：
+
+```text
+Authorization 怎么生成
+为什么要脱敏
+Allure 请求附件怎么写入
+401 后为什么只重试一次
+_send 为什么要包装 ApiRequestError
+```
+
+---
+
+## 第 13 讲：`BaseApi` 第 3 部分逐行讲解：上传和下载
+
+讲解范围：
+
+```text
+upload_file()
+download_file()
+```
+
+这一讲重点：
+
+```text
+文件上传怎么传 files
+下载为什么先写 .part 文件
+为什么下载完成后 os.replace
+```
+
+如果你项目里上传下载用得少，这讲可以稍微简化，但要知道它存在。
+
+---
+
+## 第 14 讲：`CrudClient` 逐行讲解
+
+重点文件：
+
+```text
+api_auto/base/crud_client.py
+```
+
+讲解内容：
+
+```text
+resource 是什么
+create()
+update()
+delete()
+get()
+page()
+list_all_simple()
+```
+
+这一讲用用户模块串：
+
+```text
+UserClient.resource = "/system/user"
+    ↓
+CrudClient.create()
+    ↓
+/system/user/create
+    ↓
+BaseApi.post()
+```
+
+你要掌握：
+
+> 标准 CRUD 放父类，模块特有接口放子类。
+
+---
+
+# 第 3 阶段：彻底讲懂 Token 管理
+
+这一阶段解决：
+
+> token 到底怎么拿、怎么保存、怎么刷新、怎么失效？
+
+---
+
+## 第 15 讲：Token 机制先讲业务，不讲代码
+
+讲解内容：
+
+```text
+登录为什么会返回 accessToken
+Authorization: Bearer xxx 是什么
+refreshToken 是什么
+expiresTime 是什么
+logout 后 token 为什么失效
+未带 token 为什么访问失败
+错误 token 为什么访问失败
+```
+
+你基础差，必须先讲这些概念。
+
+---
+
+## 第 16 讲：`TokenManager` 总体执行链路
+
+重点文件：
+
+```text
+api_auto/auth/token_manager.py
+```
+
+讲解主线：
+
+```text
+第一次没有 token
+    ↓
+_login()
+    ↓
+保存 accessToken / refreshToken / expiresTime
+
+第二次有 token
+    ↓
+没过期直接复用
+
+快过期
+    ↓
+_refresh()
+
+刷新失败
+    ↓
+重新登录
+
+接口返回 401
+    ↓
+invalidate_access_token()
+    ↓
+BaseApi 重试一次
+```
+
+---
+
+## 第 17 讲：`TokenManager` 逐行讲解
+
+讲解内容：
+
+```text
+AuthenticationError
+__init__()
+_auth_client()
+_successful_data()
+_update()
+_login()
+_refresh()
+_is_expiring()
+get_access_token()
+refresh_access_token()
+invalidate_access_token()
+```
+
+这一讲会很长，但会按完整链路讲，不会拆断。
+
+---
+
+## 第 18 讲：`TokenRegistry` 讲解
+
+重点文件：
+
+```text
+common/token_registry.py
+```
+
+讲解内容：
+
+```text
+为什么要登记 token
+登录成功为什么 register_response
+refresh 成功为什么也登记
+测试结束为什么要统一 logout
+如何避免测试环境 token 残留
+```
+
+这一讲是项目亮点，面试很加分。
+
+---
+
+# 第 4 阶段：断言层、数据层、公共工具层
+
+这一阶段解决：
+
+> 用例怎么判断成功？测试数据怎么读？日志和脱敏怎么做？
+
+---
+
+## 第 19 讲：断言层 `assert_utils.py`
+
+重点文件：
+
+```text
+common/assert_utils.py
+```
+
+讲解内容：
+
+```text
+assert_api_ok()
+assert_api_fail()
+assert_response_ok()
+assert_response_fail()
+```
+
+你要掌握：
+
+```text
+response 和 body 的区别
+HTTP 状态码和业务 code 的区别
+为什么 RuoYi 成功看 code == 0
+为什么不能只看 status_code == 200
+```
+
+---
+
+## 第 20 讲：Schema 校验 `schema_utils.py`
+
+重点文件：
+
+```text
+common/schema_utils.py
+```
+
+讲解内容：
+
+```text
+LOGIN_SCHEMA
+GET_INFO_SCHEMA
+assert_schema()
+jsonschema 是干什么的
+为什么登录成功要校验 accessToken
+为什么 get_info 要校验 user / roles / permissions / menus
+```
+
+你要掌握：
+
+> 断言不只判断成功，还要判断响应结构是否正确。
+
+---
+
+## 第 21 讲：YAML 数据驱动
+
+重点文件：
+
+```text
+data/login_data.yaml
+common/yaml_utils.py
+```
+
+讲解内容：
+
+```text
+YAML 格式
+cases 列表
+case_id
+desc
+expect_ok
+load_case_list()
+case_id 去重
+为什么测试数据外置
+```
+
+---
+
+## 第 22 讲：配置读取 `config.py`
+
+重点文件：
+
+```text
+common/config.py
+data/env.example.yaml
+```
+
+讲解内容：
+
+```text
+cfg 是怎么来的
+base_url 怎么读取
+admin_user 怎么读取
+db 配置怎么读取
+环境变量能不能覆盖配置
+为什么敏感配置不提交 Git
+```
+
+---
+
+## 第 23 讲：日志和脱敏
+
+重点文件：
+
+```text
+common/logger.py
+common/security_utils.py
+```
+
+讲解内容：
+
+```text
+日志写在哪里
+日志格式是什么
+为什么请求和响应要打日志
+Authorization 怎么脱敏
+password 怎么脱敏
+Allure 里为什么不能暴露 token
+```
+
+---
+
+## 第 24 讲：随机数据工具
+
+重点文件：
+
+```text
+common/random_utils.py
+```
+
+讲解内容：
+
+```text
+为什么自动化测试不能总用固定用户名
+随机用户名怎么生成
+唯一前缀有什么用
+如何避免重复数据
+```
+
+---
+
+# 第 5 阶段：conftest 和 fixture，彻底讲懂 pytest 前后置
+
+这一阶段非常重要。很多初学者卡在 fixture。
+
+---
+
+## 第 25 讲：fixture 基础概念
+
+先不看项目代码，先讲概念：
+
+```text
+fixture 是什么
+为什么不用每条用例都登录
+scope="session" 是什么
+scope="function" 是什么
+yield fixture 是什么
+fixture 之间怎么依赖
+```
+
+---
+
+## 第 26 讲：根目录 `conftest.py` 总体讲解
+
+重点文件：
+
+```text
+conftest.py
+```
+
+讲解内容：
+
+```text
+token_manager
+admin_token
+auth_client
+user_client
+role_client
+dict_client
+db
+cleanup
+logout_token
+```
+
+这一讲只讲整体关系：
+
+```text
+token_manager
+    ↓
+auth_client / user_client / role_client
+    ↓
+测试用例
+```
+
+---
+
+## 第 27 讲：`conftest.py` 逐行讲解：API fixture
+
+讲解内容：
+
+```text
+token_manager fixture
+_client_with_token_manager
+auth_client fixture
+user_client fixture
+role_client fixture
+dict_client fixture
+logout_token fixture
+```
+
+重点回答：
+
+```text
+为什么 token_manager 是 session 级别
+为什么 client 要共用 token_manager
+为什么 logout_token 不能用全局 token
+```
+
+---
+
+## 第 28 讲：`conftest.py` 逐行讲解：清理和收尾
+
+讲解内容：
+
+```text
+测试结束如何清理 token
+测试结束如何清理测试数据
+yield 后面的代码什么时候执行
+session 结束和 function 结束区别
+```
+
+---
+
+# 第 6 阶段：业务接口 Client 和测试用例
+
+这一阶段开始讲各个模块。顺序从简单到复杂。
+
+---
+
+## 第 29 讲：字典模块 Client 和用例
+
+重点文件：
+
+```text
+api_auto/clients/dict_client.py
+api_auto/testcases/test_dict_api.py
+```
+
+讲解内容：
+
+```text
+字典类型
+字典数据
+新增
+查询
+修改
+删除
+重复校验
+状态校验
+```
+
+为什么先讲字典？
+
+因为它最像标准 CRUD，依赖少，适合入门。
+
+---
+
+## 第 30 讲：部门模块 Client 和用例
+
+重点文件：
+
+```text
+api_auto/clients/dept_client.py
+api_auto/testcases/test_dept_api.py
+```
+
+讲解内容：
+
+```text
+部门树
+父子部门
+新增部门
+修改部门
+删除部门
+有子部门能不能删
+被用户引用能不能删
+```
+
+---
+
+## 第 31 讲：岗位模块 Client 和用例
+
+重点文件：
+
+```text
+api_auto/clients/post_client.py
+api_auto/testcases/test_post_api.py
+```
+
+讲解内容：
+
+```text
+岗位新增
+岗位编码重复
+岗位分页查询
+岗位状态
+岗位删除
+岗位作为用户前置数据
+```
+
+---
+
+## 第 32 讲：用户模块 Client 和用例
+
+重点文件：
+
+```text
+api_auto/clients/user_client.py
+api_auto/testcases/test_user_api.py
+```
+
+讲解内容：
+
+```text
+UserClient 为什么继承 CrudClient
+update_status()
+reset_password()
+新增用户
+查询用户
+修改用户
+禁用用户
+重置密码
+删除用户
+```
+
+这一讲会重点讲：
+
+```text
+用户为什么要关联部门、岗位、角色
+```
+
+---
+
+## 第 33 讲：角色模块 Client 和用例
+
+重点文件：
+
+```text
+api_auto/clients/role_client.py
+api_auto/testcases/test_role_api.py
+```
+
+讲解内容：
+
+```text
+新增角色
+角色编码
+角色状态
+角色分页
+角色删除
+角色和菜单权限关系
+```
+
+---
+
+## 第 34 讲：菜单和权限模块
+
+重点文件：
+
+```text
+api_auto/clients/menu_client.py
+api_auto/clients/permission_client.py
+api_auto/testcases/test_menu_api.py
+```
+
+讲解内容：
+
+```text
+菜单查询
+角色分配菜单
+用户分配角色
+system_role_menu
+system_user_role
+权限标识
+```
+
+这是权限核心模块，要讲慢一点。
+
+---
+
+# 第 7 阶段：数据库校验和数据清理
+
+这一阶段解决：
+
+> 为什么接口成功后还要查数据库？怎么防止测试数据污染？
+
+---
+
+## 第 35 讲：数据库校验基础
+
+先讲概念：
+
+```text
+接口返回成功不等于数据库正确
+新增后查库
+修改后查库
+删除后查 deleted
+关系表校验
+```
+
+讲解表：
+
+```text
+system_users
+system_role
+system_menu
+system_dept
+system_post
+system_dict_type
+system_dict_data
+system_user_role
+system_role_menu
+```
+
+---
+
+## 第 36 讲：`db_utils.py` 逐行讲解
+
+重点文件：
+
+```text
+common/db_utils.py
+```
+
+讲解内容：
+
+```text
+怎么连接 MySQL
+怎么执行查询
+怎么返回一条记录
+怎么返回多条记录
+怎么关闭连接
+异常怎么处理
+```
+
+---
+
+## 第 37 讲：`cleanup_utils.py` 逐行讲解
+
+重点文件：
+
+```text
+common/cleanup_utils.py
+```
+
+讲解内容：
+
+```text
+为什么要测试数据清理
+为什么先清关系表
+为什么再清主表
+为什么只清唯一前缀数据
+接口清理和数据库兜底清理区别
+```
+
+---
+
+## 第 38 讲：integration 联动测试总览
+
+重点目录：
+
+```text
+integration/
+```
+
+讲解内容：
+
+```text
+API 单接口测试和 integration 有什么区别
+为什么要接口造数
+为什么要 UI 验证
+为什么要 DB 校验
+为什么要清理
+```
+
+---
+
+## 第 39 讲：用户 API + DB + UI 联动案例
+
+重点文件：
+
+```text
+integration/test_user_api_ui_flow.py
+```
+
+讲解完整链路：
+
+```text
+API 创建用户
+    ↓
+API 查询用户
+    ↓
+DB 查 system_users
+    ↓
+UI 页面查询用户
+    ↓
+删除用户
+    ↓
+DB/接口确认清理
+```
+
+---
+
+## 第 40 讲：角色权限联动案例
+
+重点文件：
+
+```text
+integration/test_role_permission_flow.py
+```
+
+讲解完整链路：
+
+```text
+创建角色
+    ↓
+查询菜单
+    ↓
+角色分配菜单
+    ↓
+用户绑定角色
+    ↓
+查 system_role_menu
+    ↓
+查 system_user_role
+    ↓
+重新获取权限信息
+```
+
+---
+
+# 第 8 阶段：UI 自动化
+
+这一阶段解决：
+
+> Playwright + Page Object 怎么设计？
+
+---
+
+## 第 41 讲：UI 自动化先讲整体
+
+重点目录：
+
+```text
+ui_auto/
+```
+
+讲解内容：
+
+```text
+Playwright 是什么
+browser / context / page 是什么
+locator 是什么
+Page Object 是什么
+storage_state 是什么
+截图和 Trace 是什么
+```
+
+---
+
+## 第 42 讲：`BasePage` 逐行讲解
+
+重点文件：
+
+```text
+ui_auto/base/base_page.py
+```
+
+讲解内容：
+
+```text
+打开页面
+等待元素
+点击
+输入
+获取文本
+截图
+异常处理
+```
+
+---
+
+## 第 43 讲：UI 登录态管理
+
+重点文件：
+
+```text
+ui_auto/auth/auth_state_manager.py
+ui_auto/pages/login_page.py
+```
+
+讲解内容：
+
+```text
+为什么 UI 不每条用例都登录
+storage_state 是什么
+登录态怎么保存
+登录态失效怎么重新登录
+```
+
+---
+
+## 第 44 讲：Page Object 逐行讲解：登录页
+
+重点文件：
+
+```text
+ui_auto/pages/login_page.py
+```
+
+讲解内容：
+
+```text
+页面元素定位
+输入用户名
+输入密码
+点击登录
+等待跳转
+错误提示断言
+```
+
+---
+
+## 第 45 讲：Page Object 逐行讲解：用户页
+
+重点文件：
+
+```text
+ui_auto/pages/user_page.py
+ui_auto/testcases/test_user_ui.py
+```
+
+讲解内容：
+
+```text
+打开用户管理
+查询用户
+新增用户
+编辑用户
+禁用用户
+删除用户
+断言表格数据
+```
+
+---
+
+## 第 46 讲：UI 失败定位
+
+讲解内容：
+
+```text
+失败截图怎么看
+Trace 怎么看
+locator 找不到怎么办
+等待超时怎么办
+接口造数 + UI 验证为什么更稳定
+```
+
+---
+
+# 第 9 阶段：报告、Jenkins、JMeter
+
+这一阶段解决：
+
+> 项目怎么工程化，怎么在面试里讲亮点？
+
+---
+
+## 第 47 讲：Allure 报告
+
+讲解内容：
+
+```text
+allure-results
+allure-report
+feature
+story
+title
+step
+attachment
+请求响应附件
+截图附件
+```
+
+---
+
+## 第 48 讲：Jenkinsfile 流水线
+
+重点文件：
+
+```text
+Jenkinsfile
+```
+
+讲解内容：
+
+```text
+拉取代码
+清理历史产物
+安装依赖
+安装 Playwright 浏览器
+pytest collect-only
+执行 API/UI/integration
+生成 Allure 报告
+归档截图/Trace/logs
+credentials 注入配置
+```
+
+---
+
+## 第 49 讲：JMeter 脚本怎么讲，不夸大
+
+重点目录：
+
+```text
+jmeter/
+```
+
+讲解内容：
+
+```text
+JMeter 在项目里只是补充
+登录提取 token
+带 token 请求字典分页
+线程组
+断言
+监听器
+为什么不能说做了完整性能压测
+```
+
+---
+
+# 第 10 阶段：面试专项讲解
+
+这一阶段专门让你会讲。
+
+---
+
+## 第 50 讲：2 分钟项目介绍
+
+训练内容：
+
+```text
+项目背景
+技术栈
+测试范围
+框架分层
+用例规模
+项目亮点
+```
+
+最终你要能自然说出来。
+
+---
+
+## 第 51 讲：接口自动化面试追问
+
+问题包括：
+
+```text
+你接口框架怎么设计？
+为什么封装 BaseApi？
+token 怎么处理？
+fixture 怎么用？
+接口断言怎么做？
+数据怎么清理？
+```
+
+---
+
+## 第 52 讲：UI 自动化面试追问
+
+问题包括：
+
+```text
+为什么用 Page Object？
+UI 不稳定怎么办？
+为什么用 storage_state？
+定位器怎么选？
+失败截图和 Trace 怎么用？
+```
+
+---
+
+## 第 53 讲：数据库校验面试追问
+
+问题包括：
+
+```text
+为什么查库？
+查哪些表？
+逻辑删除怎么验证？
+关系表怎么验证？
+怎么避免误删数据？
+```
+
+---
+
+## 第 54 讲：Jenkins 和报告面试追问
+
+问题包括：
+
+```text
+Jenkins 怎么跑自动化？
+Allure 报告怎么看？
+失败怎么定位？
+credentials 怎么保护敏感信息？
+```
+
+---
+
+## 第 55 讲：完整模拟面试
+
+按真实面试来问：
+
+```text
+请介绍你的项目
+你负责了什么
+你最复杂的用例是什么
+token 怎么处理
+UI 失败怎么定位
+数据库怎么校验
+Jenkins 怎么配置
+项目有什么不足
+```
+
+---
+
+# 五、之后每一讲的详细程度标准
+
+以后我会按这个标准讲，不会跳。
+
+## 1. 先给完整链路
+
+例如讲 `BaseApi` 时，先给：
+
+```text
+UserClient.create()
+    ↓
+CrudClient.create()
+    ↓
+BaseApi.post()
+    ↓
+BaseApi.request()
+    ↓
+BaseApi._send()
+```
+
+## 2. 再给完整核心代码
+
+不是一开始就拆碎，而是先让你看整体代码长什么样。
+
+## 3. 再逐行解释
+
+逐行解释时会告诉你：
+
+```text
+这一行在整个链路里的作用是什么
+如果没有这一行会怎么样
+面试官会怎么问
+你应该怎么答
+```
+
+## 4. 最后给面试话术
+
+每讲最后都给：
+
+```text
+面试官问：
+你怎么回答：
+```
+
+## 5. 给你复述任务
+
+每讲结束会让你用自己的话回答 3—5 个问题，我再帮你修正。
+
+---
+
+# 六、推荐你现在从哪里重新开始
+
+你现在不要继续从 `AuthClient` 往后冲了。
+
+建议从 **第 1 讲重新开始**，按新计划走：
+
+```text
+第 1 讲：项目整体地图
+第 2 讲：项目运行环境
+第 3 讲：配置文件
+第 4 讲：pytest 收集规则
+第 5 讲：第一次运行和看报告
+```
+
+等这 5 讲走完，你再看 `BaseApi`、`TokenManager`，就会顺很多。
+
+---
+
+# 七、你现在最应该补的基础
+
+你现在不懂的地方，大概率集中在这 8 个点：
+
+| 难点         | 为什么会卡                                          |
+| ---------- | ---------------------------------------------- |
+| 类继承        | 不知道 `UserClient` 为什么能调用 `create()`             |
+| fixture    | 不知道 `auth_client`、`token_manager` 从哪来          |
+| HTTP 请求    | 不清楚 params、json、headers、response 的区别           |
+| token      | 不清楚 accessToken、refreshToken、Authorization 的关系 |
+| pytest 参数化 | 不清楚一条函数怎么跑出多条用例                                |
+| YAML 数据驱动  | 不清楚测试数据怎么进入测试函数                                |
+| 断言封装       | 不清楚 `assert_api_ok()` 和普通 `assert` 区别          |
+| 数据清理       | 不清楚为什么要唯一前缀和关系表优先                              |
+
+所以新计划会先把这些基础都穿插进去讲。
+
+---
+
+# 八、最终学习路线压缩版
+
+你可以先记这张路线图：
+
+```text
+项目地图
+    ↓
+运行环境
+    ↓
+配置读取
+    ↓
+pytest 收集
+    ↓
+第一条登录用例
+    ↓
+AuthClient
+    ↓
+BaseApi
+    ↓
+TokenManager
+    ↓
+断言工具
+    ↓
+YAML 数据驱动
+    ↓
+fixture
+    ↓
+业务模块 API
+    ↓
+数据库校验
+    ↓
+UI 自动化
+    ↓
+Integration 联动
+    ↓
+Allure/Jenkins
+    ↓
+面试讲解
+```
+
+---
+
+# 九、下一步
+
+下一次我们直接从新版 **第 1 讲：项目整体地图** 开始。
+
+我会按下面这个方式讲：
+
+```text
+1. 先看整个目录
+2. 每个目录干什么
+3. 目录之间怎么调用
+4. 一条 API 用例经过哪些目录
+5. 一条 UI 用例经过哪些目录
+6. integration 为什么单独存在
+7. common 为什么是底座
+8. 面试怎么讲项目结构
+9. 给你复述练习
+```
+
+这次会慢很多，但你会真正连起来。

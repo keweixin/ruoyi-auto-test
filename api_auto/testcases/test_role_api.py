@@ -16,13 +16,12 @@ import allure
 import pytest
 
 from common import db_utils
-from common.assert_utils import assert_api_ok, assert_api_fail, assert_field, assert_response_ok, assert_response_fail
+from common.assert_utils import assert_api_ok, assert_api_fail, assert_field, assert_page_result, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_json, attach_text
 from common.environment_utils import get_assignable_menu_ids
 from common.random_utils import gen_name
-from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
-from common.test_data import with_created_entity, create_role
+from data.builders import valid_role_data
 
 
 _ROLE_CASES, _ROLE_IDS = build_parametrize(load_create_cases("role"))
@@ -33,8 +32,9 @@ _ROLE_CASES, _ROLE_IDS = build_parametrize(load_create_cases("role"))
 class TestRoleApi:
 
     def _create_role(self, role_client):
-        """辅助：创建测试角色，返回 role_id。复用 common.test_data.create_role。"""
-        return create_role(role_client).id
+        """创建测试角色并返回角色 ID。"""
+        body = assert_response_ok(role_client.create(valid_role_data()), "创建角色")
+        return body["data"]
 
     @allure.story("新增")
     @pytest.mark.parametrize("case", _ROLE_CASES, ids=_ROLE_IDS)
@@ -74,9 +74,7 @@ class TestRoleApi:
         rid = role_client.create({"name": name, "code": code, "sort": 1, "status": 0}).json()["data"]
         try:
             body = role_client.page({"pageNo": 1, "pageSize": 10, "name": name}).json()
-            assert_schema(body, PAGE_LIST_SCHEMA)
-            assert_api_ok(body)
-            rows = body["data"]["list"]
+            rows = assert_page_result(body, min_total=1)["list"]
             assert any(r["id"] == rid and r["name"] == name for r in rows), "未查到本次创建的角色"
         finally:
             role_client.delete(rid)
@@ -98,20 +96,26 @@ class TestRoleApi:
     @allure.story("状态")
     @allure.title("ROLE_API_006 禁用角色成功")
     def test_disable_role(self, role_client):
-        with with_created_entity(role_client, "role") as ent:
-            role = role_client.get(ent.id).json()["data"]
+        role_id = self._create_role(role_client)
+        try:
+            role = role_client.get(role_id).json()["data"]
             role["status"] = 1
             assert_api_ok(role_client.update(role).json(), "禁用角色")
+        finally:
+            role_client.delete(role_id)
 
     @allure.story("状态")
     @allure.title("ROLE_API_007 启用角色成功")
     def test_enable_role(self, role_client):
-        with with_created_entity(role_client, "role") as ent:
-            role = role_client.get(ent.id).json()["data"]
+        role_id = self._create_role(role_client)
+        try:
+            role = role_client.get(role_id).json()["data"]
             role["status"] = 1
             role_client.update(role).json()
             role["status"] = 0
             assert_api_ok(role_client.update(role).json(), "启用角色")
+        finally:
+            role_client.delete(role_id)
 
     @allure.story("权限分配")
     @allure.title("ROLE_API_008 给角色分配菜单权限成功")

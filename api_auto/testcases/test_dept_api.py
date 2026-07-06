@@ -14,9 +14,8 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
-from common.schema_utils import assert_schema, LIST_DATA_SCHEMA
 from common.data_provider import build_case_payload, load_create_cases, build_parametrize
-from common.test_data import with_created_entity
+from data.builders import valid_dept_data
 
 
 _DEPT_CASES, _DEPT_IDS = build_parametrize(load_create_cases("dept"))
@@ -59,7 +58,6 @@ class TestDeptApi:
     @pytest.mark.smoke
     def test_list_dept(self, dept_client):
         body = dept_client.list().json()
-        assert_schema(body, LIST_DATA_SCHEMA)
         assert_api_ok(body)
         assert isinstance(body["data"], list)
 
@@ -82,21 +80,29 @@ class TestDeptApi:
     @allure.story("状态")
     @allure.title("DEPT_API_006 禁用部门成功")
     def test_disable_dept(self, dept_client):
-        with with_created_entity(dept_client, "dept") as ent:
-            dept = dept_client.get(ent.id).json()["data"]
+        created = assert_response_ok(dept_client.create(valid_dept_data()), "创建部门")
+        dept_id = created["data"]
+        try:
+            dept = dept_client.get(dept_id).json()["data"]
             dept["status"] = 1
             assert_api_ok(dept_client.update(dept).json(), "禁用部门")
+        finally:
+            dept_client.delete(dept_id)
 
     @allure.story("状态")
     @allure.title("DEPT_API_007 启用部门成功")
     def test_enable_dept(self, dept_client):
-        with with_created_entity(dept_client, "dept") as ent:
+        created = assert_response_ok(dept_client.create(valid_dept_data()), "创建部门")
+        dept_id = created["data"]
+        try:
             # 先禁用，再启用
-            dept = dept_client.get(ent.id).json()["data"]
+            dept = dept_client.get(dept_id).json()["data"]
             dept["status"] = 1
             dept_client.update(dept).json()
             dept["status"] = 0
             assert_api_ok(dept_client.update(dept).json(), "启用部门")
+        finally:
+            dept_client.delete(dept_id)
 
     @allure.story("删除")
     @allure.title("DEPT_API_008 删除部门成功")

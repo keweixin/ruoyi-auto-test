@@ -16,7 +16,6 @@ from common import db_utils
 from common.assert_utils import assert_api_ok, assert_api_fail, assert_not_found, assert_page_result, assert_response_ok, assert_response_fail
 from common.allure_utils import attach_text
 from common.random_utils import gen_name
-from common.schema_utils import assert_schema, PAGE_LIST_SCHEMA
 from common.yaml_utils import load_case_list
 
 
@@ -102,9 +101,7 @@ class TestDictApi:
             body = dict_client.page_type(
                 {"pageNo": 1, "pageSize": 10, "name": name}
             ).json()
-            assert_schema(body, PAGE_LIST_SCHEMA)
-            assert_api_ok(body)
-            assert body["data"]["total"] >= 1, "按名称未查到"
+            assert_page_result(body, min_total=1)
         finally:
             dict_client.delete_type(new_id)
 
